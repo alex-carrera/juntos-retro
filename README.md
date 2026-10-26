@@ -4,6 +4,8 @@
 
 [![Desplegar servidor en Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/alex-carrera/juntos-retro)
 
+**Estado:** la web incluye una demo local. Para habilitar salas en línea, despliega el servidor y configura `VITE_MULTIPLAYER_URL` como se indica abajo.
+
 Un juego web cooperativo para una retro de siete personas. Incluye tres niveles, personajes con nombre/color/accesorio, salas con enlace y QR, controles de teclado y táctiles, reconexión y una demo local con seis compañeros automáticos.
 
 No hay cuentas, puntuaciones ni base de datos. El perfil se recuerda en el navegador; las salas y el progreso existen en la memoria del servidor y desaparecen cuando este se reinicia. El estado y la física se calculan en el servidor para que todos jueguen la misma partida. Capacidad: 2–7 personas por sala.
@@ -45,13 +47,13 @@ El repositorio contiene todo el código. GitHub Pages publica la interfaz; el se
 
 Conecta este repositorio a Render y crea un Web Service. `render.yaml` incluye la configuración, o configura manualmente:
 
-- Build: `npm ci && npm run build`
+- Build: `npm ci --include=dev && npm run build`
 - Start: `npm start`
 - Variable: `NODE_ENV=production`
 - Node: 22
 - Health check: `/health`
 
-Render asignará una URL HTTPS. El servidor también sirve la web, así que esa URL puede usarse directamente sin Pages. Escoge un plan adecuado para que el servicio esté disponible durante la retro y revisa su coste antes de contratarlo. Un reinicio del servidor borra las salas actuales. Usa una única instancia con este almacenamiento en memoria.
+Render asignará una URL HTTPS. El servidor también sirve la web, así que esa URL puede usarse directamente sin Pages. El archivo propone el plan Free. Ese plan puede dormir tras 15 minutos de inactividad y tarda aproximadamente un minuto en despertar: abre el servicio antes de la retro. Revisa los límites del plan y tu cuenta antes de desplegar. Un reinicio del servidor borra las salas actuales. Usa una única instancia con este almacenamiento en memoria.
 
 Opcionalmente configura `ALLOWED_ORIGINS` con los orígenes que pueden abrir conexiones, separados por comas (por ejemplo `https://tuusuario.github.io,https://tu-servicio.onrender.com`). Sin esa variable, acepta cualquier origen. La URL del servidor es pública; no contiene claves ni secretos.
 

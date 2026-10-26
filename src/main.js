@@ -51,7 +51,7 @@ function openSocket(){
   clearTimeout(reconnectTimer);clearTimeout(connectionTimeout);leaving=false;
   if(ws){ws.onclose=null;ws.close();}
   try{ws=new WebSocket(serverURL());}catch(e){busy(false);toast(e.message);return;}
-  connectionTimeout=setTimeout(()=>{if(ws?.readyState===WebSocket.CONNECTING){ws.close();toast('El servidor tarda en despertar. Estamos intentando conectar…');}},45000);
+  connectionTimeout=setTimeout(()=>{if(ws?.readyState===WebSocket.CONNECTING){ws.close();toast('El servidor tarda en despertar. Vuelve a intentar en un momento.');}},90000);
   ws.onopen=()=>{clearTimeout(connectionTimeout);retry=0;if(pendingAction){send(pendingAction);pendingAction=null;}else if(session){send({type:'resume',...session});}updateConnection(true);};
   ws.onmessage=e=>{
     let msg;try{msg=JSON.parse(e.data);}catch{return;}
