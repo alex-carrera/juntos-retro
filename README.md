@@ -1,10 +1,10 @@
 # Juntos
 
-[Repositorio público](https://github.com/alex-carrera/juntos-retro) · [Abrir el juego](https://alex-carrera.github.io/juntos-retro/)
+[Repositorio público](https://github.com/alex-carrera/juntos-retro) · [Abrir el juego](https://alex-carrera.github.io/juntos-retro/) · [Servidor y juego en Render](https://juntos-retro.onrender.com)
 
 [![Desplegar servidor en Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/alex-carrera/juntos-retro)
 
-**Estado:** la web incluye una demo local. Para habilitar salas en línea, despliega el servidor y configura `VITE_MULTIPLAYER_URL` como se indica abajo.
+**Estado:** el servidor está desplegado en Render y `VITE_MULTIPLAYER_URL` está configurada en GitHub. Las salas en línea admiten hasta siete personas. La demo local con compañeros automáticos también está disponible.
 
 Un juego web cooperativo para una retro de siete personas. Incluye tres niveles, personajes con nombre/color/accesorio, salas con enlace y QR, controles de teclado y táctiles, reconexión y una demo local con seis compañeros automáticos.
 
