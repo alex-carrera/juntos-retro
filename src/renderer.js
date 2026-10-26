@@ -39,6 +39,12 @@ export function createRenderer(parent,getState) {
         g.fillStyle(0xaabb94);g.fillRoundedRect(p.x,p.y,p.w,p.h,6);g.fillStyle(0xc8d7b5);g.fillRoundedRect(p.x,p.y,p.w,6,3);
         g.fillStyle(0xb5c7a0,.3);g.fillRoundedRect(p.x+10,p.y+p.h,p.w-20,19,5);
       }
+      for(const belt of level.belts||[]){
+        g.fillStyle(0x8b9990);g.fillRoundedRect(belt.x,belt.y-2,belt.w,17,5);g.lineStyle(2,0xe3e4ce,.8);
+        const offset=(time*Math.abs(belt.speed)/1000)%28;
+        for(let x=belt.x+9+offset;x<belt.x+belt.w-12;x+=28){const d=Math.sign(belt.speed);g.lineBetween(x-d*5,belt.y+2,x,belt.y+7);g.lineBetween(x,belt.y+7,x-d*5,belt.y+12);}
+      }
+      if(level.wind){g.lineStyle(2,0x9cafb2,.45);for(let i=0;i<12;i++){const x=180+(i*109-time*.12)%870,y=210+(i%4)*77;g.lineBetween(x,y,x+25,y);g.lineBetween(x+8,y-4,x,y);}}
       // A little wayfinding sign and the exit arch.
       g.fillStyle(0xb5b99a);g.fillRect(80,FLOOR-55,5,55);g.fillStyle(0xe4ddbe);g.fillRoundedRect(53,FLOOR-64,64,26,4);
       g.lineStyle(2,0x969c7c);g.lineBetween(72,FLOOR-51,99,FLOOR-51);g.lineBetween(92,FLOOR-57,100,FLOOR-51);g.lineBetween(92,FLOOR-45,100,FLOOR-51);
@@ -71,6 +77,12 @@ export function createRenderer(parent,getState) {
         g.lineStyle(3,0xb6a785);g.strokeRoundedRect(b.x+8,b.y+8,b.w-16,b.h-23,3);g.lineBetween(b.x+10,b.y+10,b.x+b.w-10,b.y+b.h-17);g.lineBetween(b.x+b.w-10,b.y+10,b.x+10,b.y+b.h-17);
       }
       const known=new Set();
+      for(const link of room.links||[]){
+        const a=room.players.find(p=>p.id===link.a),b=room.players.find(p=>p.id===link.b);if(!a||!b)continue;
+        const x1=a.x+16,y1=a.y+25,x2=b.x+16,y2=b.y+25,d=Math.hypot(x2-x1,y2-y1),sag=Math.max(0,Math.min(22,(link.length-d)*.13));
+        g.lineStyle(link.manual?3:2.5,link.tension>14?0xdd8159:link.manual?0x789faa:0xb8a072,.95);
+        g.beginPath();g.moveTo(x1,y1);g.lineTo((x1+x2)/2,(y1+y2)/2+sag);g.lineTo(x2,y2);g.strokePath();
+      }
       for(const p of [...room.players].sort((a,b)=>a.y-b.y)){
         known.add(p.id);
         let pos=this.positions.get(p.id);
@@ -85,11 +97,12 @@ export function createRenderer(parent,getState) {
       if(!this.exitLabel)this.exitLabel=this.add.text(1184,FLOOR-150,'SALIDA',{fontFamily:'DM Sans',fontSize:'10px',color:'#849476',letterSpacing:3}).setOrigin(.5);
       if(!this.guide)this.guide=this.add.text(WIDTH/2,60,'',{fontFamily:'Outfit, sans-serif',fontSize:'16px',color:'#93a086'}).setOrigin(.5);
       const relayName=room.players.find(p=>p.id===room.relayOrder?.[room.relayStep])?.name||'';
-      this.guide.setText(room.unlocked?'Puerta abierta. ¡Nos vemos al otro lado!':room.level===0?'Cada chispa cuenta.':room.level===1?'Encontrar el ritmo también es trabajar en equipo.':room.level===2?`Hacen falta ${room.requiredPushers} compañeros empujando a la vez.`:room.level===3?'Si caes, vuelve a intentarlo. La bandera es tu punto de control.':room.level===4?`Turno de ${relayName} · ${room.signalOpen?'VERDE: entra en tu botón':'espera fuera del botón'}`:'Una persona en su botón de color. Manténganlos dos segundos.');
+      this.guide.setText(room.unlocked?'Puerta abierta. ¡Nos vemos al otro lado!':room.level===0?'La cuerda tira de tu compañero. Avancen juntos.':room.level===1?'La cinta arrastra. E o Agarrar permite frenar.':room.level===2?`Hacen falta ${room.requiredPushers} empujando contra las ráfagas.`:room.level===3?'Si alguien cae, frenen y tiren de la cuerda para rescatarlo.':room.level===4?`Turno de ${relayName} · ${room.signalOpen?'VERDE: entra y frena':'espera fuera del botón'}`:'Una cadena, siete botones. Frenen y sostengan dos segundos.');
     }
     character(g,p,x,y,time,isMe){
       const c=hex(p.color),bounce=p.grounded&&Math.abs(p.vx)>5?Math.sin(time/85)*2:0;y+=bounce;
-      g.fillStyle(0x4d6446,.12);g.fillEllipse(x+16,FLOOR+2,34,8);
+      if(p.grounded){g.fillStyle(0x4d6446,.12);g.fillEllipse(x+16,y+44,34,8);}
+      if(p.bracing){g.lineStyle(2,0xf2e4b7,.9);g.strokeCircle(x+16,y+24,25);}
       g.fillStyle(c,p.connected?1:.35);
       if(p.accessory==='ears'){g.fillTriangle(x+1,y+8,x+1,y-8,x+14,y+3);g.fillTriangle(x+18,y+3,x+31,y-8,x+31,y+10);}
       g.fillRoundedRect(x,y,32,37,11);

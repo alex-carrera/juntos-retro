@@ -1,78 +1,63 @@
 # Soporte Tier 3 · Retro
 
-[Repositorio público](https://github.com/alex-carrera/juntos-retro) · [Abrir el juego](https://alex-carrera.github.io/juntos-retro/) · [Servidor y juego en Render](https://juntos-retro.onrender.com)
+[Entrar al juego](https://alex-carrera.github.io/juntos-retro/) · [Repositorio](https://github.com/alex-carrera/juntos-retro) · [Servidor](https://juntos-retro.onrender.com)
 
-[![Desplegar servidor en Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/alex-carrera/juntos-retro)
+Seis retos cooperativos para 2–7 personas, seguidos por un tablero de retrospectiva compartido. Android, iPhone y computadora desde el navegador. Sin cuentas de jugadores ni rankings.
 
-**Estado:** el servidor está desplegado en Render y `VITE_MULTIPLAYER_URL` está configurada en GitHub. Las salas en línea admiten hasta siete personas. La demo local con compañeros automáticos también está disponible.
+## De la aventura a la retro
 
-Un juego web cooperativo para una retro de siete personas. Incluye seis niveles, personajes con nombre/color/accesorio, salas con enlace y QR, controles de teclado y táctiles, reconexión y una demo local con seis compañeros automáticos.
+1. Crea una sala, comparte su enlace o QR y espera al equipo.
+2. Todos marcan «Estoy listo» y quien facilita inicia.
+3. Completen seis retos con cuerdas, caídas, agarres, cintas y ráfagas.
+4. Cuando todos llegan a la última salida, el tablero de retro se abre automáticamente para todo el equipo.
+5. Escriban ideas, voten y acuerden acciones. La retro queda guardada en Supabase.
 
-No hay cuentas, puntuaciones ni base de datos. El perfil se recuerda en el navegador; las salas y el progreso existen en la memoria del servidor y desaparecen cuando este se reinicia. El estado y la física se calculan en el servidor para que todos jueguen la misma partida. Capacidad: 2–7 personas por sala.
+Quien facilita también puede abrir el tablero desde la sala o el botón «Retro» durante un nivel, para respetar el tiempo de la reunión. Eso termina la aventura de esa sala. La demo local permite revisar juego y tablero con compañeros automáticos; sus notas no se guardan en la nube.
 
-## Probar en la computadora
+## Controles y cooperación
 
-Requiere Node.js 20.19 o superior.
+- Flechas o A/D: moverse.
+- Espacio, W o flecha arriba: saltar.
+- **E, mantenida:** agarrar a una persona cercana y frenar. Si está colgando de una cuerda, permite izarla. Agarrar y saltar ayuda a rescatarla. Suelta E para liberar un agarre manual; las cuerdas permanentes siguen uniendo al equipo.
+- En celular aparecen botones de movimiento, salto y **Agarrar**. Usa orientación horizontal para ver mejor el escenario.
+- Coordinen por el audio de su llamada; no hay voz ni chat en el juego.
+
+### Seis niveles
+
+1. **Unidos desde el inicio:** cuerdas por parejas, una chispa propia y la obligación de llegar juntos.
+2. **Contra la corriente:** la cinta desplaza al equipo mientras todos deben sostener los botones. Agarrar/frenar permite mantener la posición.
+3. **Arrastre en equipo:** una cadena de jugadores, un bloque pesado y ráfagas en contra.
+4. **No sueltes la cuerda:** plataformas sobre un río con caídas reales. Quien queda arriba puede frenar e izar al compañero. Si todo el grupo conectado cae demasiado, vuelve al último punto de control que alcanzaron todos; las chispas recogidas se conservan.
+5. **Relevo en movimiento:** turnos con luz verde sobre una cinta transportadora. El dueño entra y sostiene su botón; si esperaba encima antes de su turno, debe salir y volver a entrar.
+6. **Todos o ninguno:** una cadena completa cruza el río y mantiene los botones de color a distintas alturas durante dos segundos, resistiendo el viento.
+
+Las salas de juego viven en memoria: se pausan ante una desconexión y permiten volver al recargar la pestaña. Un reinicio del servidor borra las partidas en curso. El historial de retro se guarda por separado y sobrevive a esos reinicios.
+
+## El tablero de retro
+
+Tres columnas: **Lo que funcionó**, **Podemos mejorar** y **Próximos pasos**. Cada participante escribe tarjetas y edita las suyas; quien facilita puede ordenar y editar las del equipo.
+
+- Etapas: Escribir → Votar → Acordar acciones → Cerrada. Quien facilita puede reabrirla.
+- Tres votos por persona; se pueden retirar para cambiar de idea.
+- Acciones con responsable y estado pendiente/hecha.
+- Búsqueda, título editable y descarga de notas en Markdown.
+- Historial guardado y reapertura desde «Mis retrospectivas guardadas».
+- El enlace privado del tablero permite que el squad vuelva a leer y participar. Guárdenlo en un lugar compartido de confianza.
+
+La lista de enlaces y la identidad de cada participante se recuerdan en ese navegador. Las notas se guardan en la nube. Si cambias de navegador o borras sus datos, usa el enlace privado para volver a entrar; te reconocerá como un participante nuevo si no conservas tu identidad anterior. No existe un directorio público de retrospectivas.
+
+La interfaz indica **Guardando historial**, **Historial guardado** o un error con reintento. Si hay un fallo de conexión con el almacenamiento, descarga las notas antes de cerrar la sesión. Capacidad: 200 tarjetas por tablero, 600 caracteres por tarjeta y hasta 30 participantes en la etapa de retro.
+
+## Desarrollo
+
+Node.js 20.19 o superior:
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
-Abre `http://localhost:3000`. Para probar multijugador, usa pestañas o navegadores distintos. Cada pestaña recuerda su propia sesión. También puedes entrar desde un teléfono en la misma Wi-Fi usando la IP local de la computadora y el puerto 3000; el enlace/QR debe abrirse desde esa IP, no desde localhost. Permite el acceso de Node en el firewall si lo solicita.
-
-La demo está claramente identificada: sus seis compañeros son automáticos y no se conecta a una sala en línea. Usa «Ver siguiente nivel» para revisar los seis retos sin completarlos primero.
-
-## Jugar con el equipo
-
-1. Cada persona entra con su propio dispositivo.
-2. Una persona crea la sala y comparte el enlace o el código de cinco caracteres.
-3. Espera a que se reúnan los siete y todos marquen «Estoy listo».
-4. El anfitrión inicia. Puede reiniciar el nivel y avanzar al siguiente cuando lleguen todos a la salida.
-5. Usen el audio de su llamada de retro para coordinarse; el juego no incluye voz ni chat.
-
-Flechas o A/D para moverse. Espacio, W o flecha arriba para saltar. En pantallas táctiles aparecen botones. Se puede saltar sobre los compañeros.
-
-- **Una chispa por persona:** cada jugador recoge su estrella de color. La puerta se abre cuando todos aportan la suya.
-- **En la misma sintonía:** ocupen simultáneamente los siete botones durante algo más de un segundo. La puerta permanece abierta después.
-- **El último empujón:** al menos la mitad del equipo, redondeando hacia arriba, camina hacia la derecha cerca del lado izquierdo del bloque. Con siete personas hacen falta cuatro. Empújenlo hasta la silueta marcada y reúnanse en la salida.
-
-- **Un salto de confianza:** cruzad el río por las plataformas más estrechas. Cada persona recoge su chispa. La bandera guarda un punto de control individual; caer conserva las chispas recogidas.
-- **Pasar el relevo:** el equipo activa sus botones en el orden indicado. Solo el dueño del botón puede activarlo, entrando con luz verde y manteniéndolo un instante. Si alguien esperaba encima antes de su turno o entra en rojo, debe salir y volver a entrar. Los relevos completados se conservan.
-- **La gran sincronía:** cada jugador recoge su chispa y ocupa el botón de su color en una plataforma. Todos deben mantenerlos dos segundos a la vez. Hay río y un punto de control central; al abrirse la puerta, los siete deben cruzar hasta la salida.
-
-Duración orientativa de la aventura completa: 20–30 minutos. Los tres primeros retos sirven para aprender; los tres nuevos exigen más precisión y coordinación.
-
-Si alguien se desconecta, el juego se pausa hasta que vuelva. Se puede recargar la pestaña para reconectar. El anfitrión se transfiere a otra persona conectada cuando hace falta. El anfitrión puede continuar sin quienes se desconectaron; eso reinicia el nivel y ajusta los objetivos al equipo restante. No se admiten nuevos jugadores en medio de un nivel; vuelvan a la sala para reunir otro equipo.
-
-## Publicar desde GitHub
-
-El repositorio contiene todo el código. GitHub Pages publica la interfaz; el servidor multijugador necesita un servicio que ejecute Node y mantenga WebSockets. GitHub Pages por sí solo permite ver la demo, pero no alojar salas.
-
-### 1. Servidor en Render
-
-Conecta este repositorio a Render y crea un Web Service. `render.yaml` incluye la configuración, o configura manualmente:
-
-- Build: `npm ci --include=dev && npm run build`
-- Start: `npm start`
-- Variable: `NODE_ENV=production`
-- Node: 22
-- Health check: `/health`
-
-Render asignará una URL HTTPS. El servidor también sirve la web, así que esa URL puede usarse directamente sin Pages. El archivo propone el plan Free. Ese plan puede dormir tras 15 minutos de inactividad y tarda aproximadamente un minuto en despertar: abre el servicio antes de la retro. Revisa los límites del plan y tu cuenta antes de desplegar. Un reinicio del servidor borra las salas actuales. Usa una única instancia con este almacenamiento en memoria.
-
-Opcionalmente configura `ALLOWED_ORIGINS` con los orígenes que pueden abrir conexiones, separados por comas (por ejemplo `https://tuusuario.github.io,https://tu-servicio.onrender.com`). Sin esa variable, acepta cualquier origen. La URL del servidor es pública; no contiene claves ni secretos.
-
-### 2. Interfaz en GitHub Pages
-
-1. Sube el proyecto a un repositorio de tu GitHub con rama `main`.
-2. En Settings → Secrets and variables → Actions → Variables, crea `VITE_MULTIPLAYER_URL` con la URL HTTPS del servidor Render.
-3. En Settings → Pages → Build and deployment, selecciona **GitHub Actions**.
-4. Ejecuta el workflow «Publicar Soporte Tier 3 en GitHub Pages» o haz push a `main`.
-
-La variable se incorpora al construir. Si cambia el servidor, vuelve a ejecutar el workflow. Vite usa rutas relativas para que funcione dentro de `usuario.github.io/repositorio/`.
-
-## Validación
+Abre `http://localhost:3000`. Para un teléfono en la misma Wi-Fi, abre la IP local de la computadora y el puerto 3000. El enlace/QR debe generarse desde esa dirección, no desde localhost.
 
 ```sh
 npm test
@@ -80,4 +65,18 @@ npm run build
 npm start
 ```
 
-Los tests cubren la lógica de cooperación, finalización, pausa al desconectarse y un recorrido de salas reales con siete conexiones WebSocket. Antes de la retro, prueba la URL publicada con un iPhone y un Android y haz una partida con el equipo: la latencia y el comportamiento táctil dependen de la red y del navegador. La interfaz se publica en GitHub Pages. Las salas en línea requieren configurar el servidor indicado arriba.
+Los tests verifican los seis recorridos con dos y siete jugadores, agarre/arrastre, frenado, rescates, puntos de control, turnos, sincronización, edición concurrente, votos, permisos del tablero y una sala real con siete conexiones. Los tests de servidor usan un almacén de memoria para no crear notas de prueba en la nube. El proyecto Supabase y la aplicación publicada se comprueban además por separado.
+
+## Publicación
+
+GitHub Pages aloja la interfaz. Render ejecuta el servidor Node/WebSocket y también puede servir la web completa. La variable de repositorio `VITE_MULTIPLAYER_URL` apunta a `https://juntos-retro.onrender.com` y se incorpora al compilar. El workflow de Pages ejecuta tests y build.
+
+Render usa `render.yaml`, plan Free, una única instancia, `npm ci --include=dev && npm run build` y `npm start`. Su health check es `/health`. El plan puede dormir por inactividad; abre la web antes de la reunión. Cuando actualices la lógica del servidor, despliega también la última versión en Render.
+
+## Historial permanente y acceso
+
+Proyecto Supabase dedicado: **Soporte Tier 3 Retro**. El esquema reproducible está en `supabase/schema.sql`. La configuración de la aplicación está en `server/storage-config.js`: contiene la URL y una **clave publicable**, no una clave privilegiada.
+
+Cada tablero obtiene una clave aleatoria de 256 bits. En Supabase solo se guarda su hash; las políticas RLS exigen esa clave adicional en la cabecera de la petición. Sin el enlace correcto, la API no devuelve las notas. El enlace lleva la clave en el fragmento, que no se envía como parte de una petición de página. El documento persistido no incluye tokens de participantes en texto plano.
+
+Las notas se guardan al crear el tablero y después de cada cambio, con reintentos y estado de guardado visible. Los enlaces de acceso son compartidos por el squad: quien los tenga puede leer y participar, sin crear una cuenta. Para instalar en otro proyecto aplica el esquema una vez y cambia la configuración publicable. No uses `service_role` ni claves secretas en el código del navegador.

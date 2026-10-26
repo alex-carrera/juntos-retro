@@ -4,12 +4,12 @@ export const FLOOR = 594;
 export const MAX_PLAYERS = 7;
 export const PALETTE = ['#ed7757', '#e8b544', '#7d9e78', '#719eb0', '#a98abb', '#df94a3', '#8caaa1'];
 export const LEVELS = [
-  { title: 'Una chispa por persona', subtitle: 'Busca la estrella de tu color. La puerta necesita las de todos.', tag: '01 · CONECTAR', platforms: [{x:340,y:514,w:145,h:18},{x:540,y:454,w:145,h:18},{x:740,y:514,w:145,h:18}] },
-  { title: 'En la misma sintonía', subtitle: 'Una persona en cada botón. Manténganlos todos encendidos un instante.', tag: '02 · ESCUCHAR', platforms: [] },
-  { title: 'El último empujón', subtitle: 'Acérquense al bloque y caminen hacia la derecha al mismo tiempo.', tag: '03 · COLABORAR', platforms: [] },
-  { title: 'Un salto de confianza', subtitle: 'Cruza el río por las plataformas y recoge tu chispa. La bandera guarda tu posición.', tag: '04 · CONFIAR', platforms: [{x:220,y:524,w:110,h:18},{x:365,y:464,w:100,h:18},{x:510,y:404,w:110,h:18},{x:665,y:464,w:100,h:18},{x:810,y:524,w:100,h:18},{x:955,y:524,w:90,h:18}], river:{x:320,w:695}, checkpoint:2 },
-  { title: 'Pasar el relevo', subtitle: 'El nombre indica el turno. Entra en tu botón cuando el faro esté verde y espera a que se encienda.', tag: '05 · COORDINAR', platforms: [] },
-  { title: 'La gran sincronía', subtitle: 'Busca tu chispa y mantén tu botón de color con todo el equipo durante dos segundos.', tag: '06 · SUPERARSE', platforms: [{x:170,y:534,w:100,h:18},{x:300,y:474,w:90,h:18},{x:430,y:414,w:90,h:18},{x:560,y:354,w:90,h:18},{x:690,y:414,w:90,h:18},{x:820,y:474,w:90,h:18},{x:950,y:534,w:100,h:18}], river:{x:260,w:750}, checkpoint:3 },
+  { title: 'Unidos desde el inicio', subtitle: 'Cada persona recoge su chispa. La cuerda los une: avancen con su compañero, sin dejarlo atrás.', tag: '01 · UNIRSE', ropeMode:'pairs',ropeLength:185, platforms: [{x:340,y:514,w:145,h:18},{x:540,y:454,w:145,h:18},{x:740,y:514,w:145,h:18}] },
+  { title: 'Contra la corriente', subtitle: 'La cinta los arrastra. Ocupen todos los botones; mantén E o Agarrar para frenar.', tag: '02 · RESISTIR', belts:[{x:150,w:820,y:FLOOR,speed:-90}], platforms: [] },
+  { title: 'Arrastre en equipo', subtitle: 'Empujen juntos contra las ráfagas. La cadena tira de quienes se quedan; E permite agarrar y frenar.', tag: '03 · EMPUJAR', ropeMode:'chain',ropeLength:165,wind:{strength:-95,period:4}, platforms: [] },
+  { title: 'No sueltes la cuerda', subtitle: 'Crucen por parejas. Si alguien cae, frena con E y retrocede para rescatarlo antes de caer los dos.', tag: '04 · RESCATAR', ropeMode:'pairs',ropeLength:155, platforms: [{x:220,y:524,w:110,h:18},{x:365,y:464,w:100,h:18},{x:510,y:404,w:110,h:18},{x:665,y:464,w:100,h:18},{x:810,y:524,w:100,h:18},{x:955,y:524,w:90,h:18}], river:{x:320,w:695}, checkpoint:2 },
+  { title: 'Relevo en movimiento', subtitle: 'Activen por turnos con luz verde. La cinta empuja: mantén E para sostener el botón.', tag: '05 · COORDINAR',belts:[{x:160,w:820,y:FLOOR,speed:75}], platforms: [] },
+  { title: 'Todos o ninguno', subtitle: 'Una sola cadena, siete alturas. Cada quien en su botón; frenen las ráfagas con E y sostengan dos segundos.', tag: '06 · SINCRONIZAR',ropeMode:'chain',ropeLength:165,wind:{strength:-65,period:5}, platforms: [{x:170,y:534,w:100,h:18},{x:300,y:474,w:90,h:18},{x:430,y:414,w:90,h:18},{x:560,y:354,w:90,h:18},{x:690,y:414,w:90,h:18},{x:820,y:474,w:90,h:18},{x:950,y:534,w:100,h:18}], river:{x:260,w:750}, checkpoint:3 },
 ];
 export const hasStars = level => [0,3,5].includes(level);
 export function onPlate(p,plate){return p.grounded && Math.abs(p.y+p.h-plate.y-8)<4 && p.x+p.w>plate.x+8 && p.x<plate.x+plate.w-8;}
@@ -26,6 +26,7 @@ export function startLevel(room, index) {
   room.unlocked = false;
   room.progress = 0;
   room.exitCount = 0;
+  room.ropeMode=LEVELS[index].ropeMode;room.ropeLength=LEVELS[index].ropeLength;room.links=[];
   room.relayStep=0;room.relayHold=0;room.relayArmed=true;room.signalOpen=false;room.signalRemaining=0;
   room.relayOrder=[];
   for(let a=0,b=room.players.length-1;a<=b;a++,b--){room.relayOrder.push(room.players[a].id);if(a!==b)room.relayOrder.push(room.players[b].id);}
@@ -39,6 +40,7 @@ export function startLevel(room, index) {
     const plat = LEVELS[0].platforms.find(p=>s.x>p.x-8 && s.x<p.x+p.w+8);
     s.y = plat ? plat.y-31 : FLOOR-35;
   });
+  if(index===0&&room.stars[5]){room.stars[5].x=790;room.stars[5].y=483;}
   if(index===3){
     const anchors=[0,1,1,2,3,4,5];
     room.stars.forEach((s,i)=>{const plat=LEVELS[index].platforms[anchors[i]];s.x=plat.x+plat.w*(i===1?.28:i===2?.72:.5);s.y=plat.y-31;});
@@ -48,7 +50,7 @@ export function startLevel(room, index) {
     room.stars=room.plates.map(plate=>({owner:plate.owner,color:plate.color,x:plate.x+plate.w/2,y:plate.y-23,collected:false}));
   }
   if(index===4)room.plates.forEach((plate,i)=>{plate.owner=room.players[i].id;plate.color=room.players[i].color;});
-  room.players.forEach((p,i)=>{const x=index>=3?45+i*26:68+i*43;Object.assign(p,{x,y:FLOOR-42,vx:0,vy:0,spark:false,grounded:true,input:{left:false,right:false,jump:false},jumpHeld:false,checkpoint:{x,y:FLOOR-42},checkpointStage:0,respawnUntil:0,route:0});});
+  room.players.forEach((p,i)=>{const x=index>=3?45+i*26:68+i*43;Object.assign(p,{x,y:FLOOR-42,vx:0,vy:0,dragVX:0,grabbed:null,spark:false,grounded:true,input:{left:false,right:false,jump:false,grip:false},jumpHeld:false,checkpoint:{x,y:FLOOR-42},checkpointStage:0,respawnUntil:0,route:0});});
 }
 
 function solids(room) {
@@ -62,6 +64,8 @@ export function stepRoom(room, dt) {
   if(room.status!=='playing' || room.players.some(p=>!p.connected)) return;
   dt = Math.min(dt, 1/20);
   room.elapsed += dt;
+  const level=LEVELS[room.level];
+  const overRiver=p=>level.river&&p.x+p.w>level.river.x&&p.x<level.river.x+level.river.w;
   if(room.level===4){const phase=room.elapsed%3.6;room.signalOpen=phase>=1&&phase<2.6;room.signalRemaining=room.signalOpen?2.6-phase:0;}
   if(room.level===2 && !room.unlocked) {
     const box=room.box;
@@ -72,8 +76,13 @@ export function stepRoom(room, dt) {
   }
   const obstacles = solids(room);
   for(const p of room.players) {
+    p.wasGrounded=p.grounded;
     const move = Number(p.input.right)-Number(p.input.left);
-    p.vx = move*225;
+    p.dragVX=(p.dragVX||0)*(p.input.grip&&p.grounded?.55:.9);
+    const belt=level.belts?.find(b=>p.grounded&&Math.abs(p.y+p.h-b.y)<5&&p.x+p.w>b.x&&p.x<b.x+b.w);
+    const wind=level.wind&&p.x>170&&p.x<1080?level.wind.strength*(.55+.45*Math.sin(room.elapsed*Math.PI*2/level.wind.period)):0;
+    const drag=p.input.grip&&p.grounded?0:(belt?.speed||0)+wind;
+    p.vx = move*(p.input.grip?160:225)+p.dragVX+drag;
     if(move) p.facing=move;
     if(p.input.jump && !p.jumpHeld && p.grounded) {p.vy=-510; p.grounded=false;}
     p.jumpHeld=p.input.jump;
@@ -87,7 +96,7 @@ export function stepRoom(room, dt) {
     const before=p.y+p.h;
     p.y+=p.vy*dt;
     p.grounded=false;
-    if(p.y+p.h>=FLOOR) {p.y=FLOOR-p.h;p.vy=0;p.grounded=true;}
+    if(p.y+p.h>=FLOOR&&before<=FLOOR+2&&!overRiver(p)) {p.y=FLOOR-p.h;p.vy=0;p.grounded=true;}
     for(const o of obstacles) if(rectsOverlap(p,o)) {
       if(p.vy>=0 && before<=o.y+3) {p.y=o.y-p.h;p.vy=0;p.grounded=true;}
       else if(p.vy<0 && before-p.h>=o.y+o.h-3) {p.y=o.y+o.h;p.vy=0;}
@@ -97,11 +106,21 @@ export function stepRoom(room, dt) {
       p.y=other.y-p.h;p.vy=0;p.grounded=true;
     }
   }
-  const level=LEVELS[room.level];
+  solveRopes(room,dt,(p,dx,dy)=>{
+    const previousBottom=p.y+p.h;
+    p.x=Math.max(20,Math.min(WIDTH-p.w-20,p.x+dx));
+    for(const o of obstacles)if(rectsOverlap(p,o)){if(dx>0)p.x=o.x-p.w;else if(dx<0)p.x=o.x+o.w;}
+    p.y+=dy;if(Math.abs(dy)>.1)p.grounded=false;
+    if(dy>=0&&previousBottom<=FLOOR+2&&p.y+p.h>=FLOOR&&!overRiver(p)){p.y=FLOOR-p.h;p.vy=0;p.grounded=true;}
+    for(const o of obstacles)if(rectsOverlap(p,o)){if(dy>=0&&previousBottom<=o.y+3){p.y=o.y-p.h;p.vy=0;p.grounded=true;}else if(dy<0&&previousBottom-p.h>=o.y+o.h-3){p.y=o.y+o.h;p.vy=0;}}
+  });
   if(level.river)for(const p of room.players){
     const cp=level.platforms[level.checkpoint];
     if(p.grounded&&Math.abs(p.y+p.h-cp.y)<3&&p.x+p.w>cp.x+8&&p.x<cp.x+cp.w-8){p.checkpoint={x:cp.x+cp.w/2-16,y:cp.y-p.h};p.checkpointStage=level.checkpoint+1;}
-    if(p.y+p.h>=FLOOR-1&&p.x+p.w>level.river.x&&p.x<level.river.x+level.river.w){p.x=p.checkpoint.x;p.y=p.checkpoint.y;p.vx=0;p.vy=0;p.grounded=true;p.respawnUntil=room.elapsed+.3;p.route=0;}
+    if(p.y>HEIGHT+140){
+      const group=linkedGroup(room,p.id),stage=Math.min(...group.map(p=>p.checkpointStage));
+      group.forEach((member,i)=>{const cp=stage?level.platforms[level.checkpoint]:null;const x=cp?cp.x+cp.w/2-16+(i-(group.length-1)/2)*6:45+room.players.indexOf(member)*26,y=cp?cp.y-member.h:FLOOR-member.h;Object.assign(member,{x,y,vy:0,vx:0,dragVX:0,grabbed:null,grounded:true,checkpoint:{x,y},checkpointStage:stage,respawnUntil:room.elapsed+.5,route:0});});
+    }
   }
   if(hasStars(room.level)) {
     for(const s of room.stars) {
@@ -136,10 +155,11 @@ export function stepRoom(room, dt) {
     }
     room.progress=room.relayStep/room.players.length;
   }
-  room.exitCount=room.players.filter(p=>p.x>1130 && p.y+p.h>FLOOR-160).length;
+  room.exitCount=room.players.filter(p=>p.x>1130 && p.y+p.h>FLOOR-160&&p.y<FLOOR).length;
   if(room.unlocked && room.exitCount===room.players.length) room.status=room.level===LEVELS.length-1?'finished':'cleared';
 }
 
 export function publicRoom(room, selfId) {
-  return {code:room.code,selfId,hostId:room.hostId,status:room.status,level:room.level,elapsed:room.elapsed||0,relayOrder:room.relayOrder||[],relayStep:room.relayStep||0,relayHold:room.relayHold||0,relayArmed:room.relayArmed,signalOpen:room.signalOpen,signalRemaining:room.signalRemaining||0,unlocked:room.unlocked,progress:room.progress||0,stars:room.stars||[],plates:room.plates||[],box:room.box,exitCount:room.exitCount||0,pushers:room.pushers||0,requiredPushers:room.requiredPushers||0,players:room.players.map(({input,jumpHeld,token,ws,...p})=>p)};
+  return {code:room.code,selfId,hostId:room.hostId,status:room.status,level:room.level,elapsed:room.elapsed||0,links:room.links||[],ropeMode:room.ropeMode,ropeLength:room.ropeLength,retro:room.retro||null,relayOrder:room.relayOrder||[],relayStep:room.relayStep||0,relayHold:room.relayHold||0,relayArmed:room.relayArmed,signalOpen:room.signalOpen,signalRemaining:room.signalRemaining||0,unlocked:room.unlocked,progress:room.progress||0,stars:room.stars||[],plates:room.plates||[],box:room.box,exitCount:room.exitCount||0,pushers:room.pushers||0,requiredPushers:room.requiredPushers||0,players:room.players.map(({input,jumpHeld,token,tokenHash,ws,...p})=>p)};
 }
+import { solveRopes, linkedGroup } from './ropes.js';

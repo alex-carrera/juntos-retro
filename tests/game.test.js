@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makePlayer, startLevel, stepRoom, publicRoom, PALETTE, FLOOR, LEVELS } from '../shared/game.js';
+import { makePlayer, startLevel, stepRoom, publicRoom, PALETTE, FLOOR, LEVELS, HEIGHT } from '../shared/game.js';
 import { updateBot } from '../shared/bots.js';
 const room=()=>({code:'TEST7',hostId:'p0',players:PALETTE.map((c,i)=>makePlayer('p'+i,'Persona '+i,c))});
 const steps=(r,n=60)=>{for(let i=0;i<n;i++)stepRoom(r,1/30);};
 test('Cada una de las siete estrellas solo puede recogerla su dueño',()=>{
-  const r=room();startLevel(r,0);
+  const r=room();startLevel(r,0);r.ropeMode=null;
   const star=r.stars[0];r.players[1].x=star.x-16;r.players[1].y=star.y-20;stepRoom(r,1/30);
   assert.equal(star.collected,false);
   for(let i=0;i<7;i++){const s=r.stars[i],p=r.players[i];p.x=s.x-16;p.y=s.y-20;stepRoom(r,1/30);}
@@ -14,13 +14,13 @@ test('Cada una de las siete estrellas solo puede recogerla su dueño',()=>{
   for(const p of r.players){p.x=1170;p.y=FLOOR-42;}steps(r,3);assert.equal(r.status,'cleared');
 });
 test('Los siete botones deben estar ocupados simultáneamente y se quedan abiertos',()=>{
-  const r=room();startLevel(r,1);
+  const r=room();startLevel(r,1);r.players.forEach(p=>{p.input.grip=true;p.gripHeld=true;});
   r.players.slice(0,6).forEach((p,i)=>p.x=r.plates[i].x+14);steps(r);assert.equal(r.unlocked,false);
   r.players[6].x=r.plates[6].x+14;steps(r,40);assert.equal(r.unlocked,true);
   r.players.forEach(p=>p.x=30);steps(r);assert.equal(r.unlocked,true);
 });
 test('Cuatro de siete empujan el bloque y el equipo avanza al cuarto nivel',()=>{
-  const r=room();startLevel(r,2);assert.equal(r.requiredPushers,4);
+  const r=room();startLevel(r,2);r.ropeMode=null;assert.equal(r.requiredPushers,4);
   r.players.forEach((p,i)=>{p.x=i<4?530:60;p.input.right=i<3;});steps(r,20);assert.equal(r.box.x,610);
   r.players[3].input.right=true;steps(r,110);assert.equal(r.unlocked,true);
   r.players.forEach(p=>{p.x=1180;p.y=FLOOR-42;p.input.right=false;});steps(r,4);assert.equal(r.status,'cleared');
@@ -52,20 +52,20 @@ test('Equipos de dos y siete recorren los seis niveles con la física real',()=>
  }
 });
 test('Caer al río devuelve al punto de control y conserva la chispa',()=>{
-  const r=room();startLevel(r,3);const p=r.players[0],cp=LEVELS[3].platforms[2];
+  const r=room();startLevel(r,3);r.ropeMode=null;const p=r.players[0],cp=LEVELS[3].platforms[2];
   p.x=cp.x+20;p.y=cp.y-p.h;steps(r,2);assert.equal(p.checkpointStage,3);
   const checkpoint={...p.checkpoint};p.spark=true;r.stars[0].collected=true;
-  p.x=750;p.y=FLOOR-p.h;stepRoom(r,1/30);assert.equal(p.x,checkpoint.x);assert.equal(p.y,checkpoint.y);assert.equal(p.spark,true);assert.equal(r.stars[0].collected,true);
+  p.x=750;p.y=FLOOR-p.h;stepRoom(r,1/30);assert.ok(p.y>FLOOR-p.h);p.y=HEIGHT+150;stepRoom(r,1/30);assert.equal(p.x,checkpoint.x);assert.equal(p.y,checkpoint.y);assert.equal(p.spark,true);assert.equal(r.stars[0].collected,true);
 });
 test('El relevo ignora a quien no tiene turno y obliga a entrar con luz verde',()=>{
-  const r=room();startLevel(r,4);const p=r.players[0],wrong=r.players[1],plate=r.plates[0];
+  const r=room();startLevel(r,4);r.players.forEach(p=>p.input.grip=true);const p=r.players[0],wrong=r.players[1],plate=r.plates[0];
   wrong.x=plate.x+14;steps(r,45);assert.equal(r.relayStep,0);wrong.x=40;
   r.elapsed=0;p.x=plate.x+14;steps(r,45);assert.equal(r.relayStep,0);assert.equal(r.relayArmed,false);
   p.x=100;stepRoom(r,1/30);p.x=plate.x+14;steps(r,21);assert.equal(r.relayStep,1);
   assert.equal(r.plates[0].active,true);
 });
 test('La sincronía final exige el dueño de cada botón y dos segundos continuos',()=>{
-  const r=room();startLevel(r,5);r.stars.forEach(s=>s.collected=true);
+  const r=room();startLevel(r,5);r.ropeMode=null;r.players.forEach(p=>p.input.grip=true);r.stars.forEach(s=>s.collected=true);
   const place=()=>r.players.forEach((p,i)=>{p.x=r.plates[i].x+10;p.y=r.plates[i].y+8-p.h;});
   place();const left=r.players[0].x;r.players[0].x=r.players[1].x;r.players[0].y=r.players[1].y;r.players[1].x=left;r.players[1].y=r.plates[0].y+8-r.players[1].h;
   steps(r,70);assert.equal(r.unlocked,false);
