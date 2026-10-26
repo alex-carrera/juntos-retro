@@ -1,0 +1,95 @@
+import Phaser from 'phaser';
+import { WIDTH, HEIGHT, FLOOR, LEVELS } from '../shared/game.js';
+
+const hex=c=>parseInt(c.replace('#',''),16);
+export function createRenderer(parent,getState) {
+  class Garden extends Phaser.Scene {
+    create() {this.pen=this.add.graphics();this.labels=new Map();this.decor=[];this.positions=new Map();}
+    update(time,delta) {
+      const room=getState();if(!room?.players)return;
+      const g=this.pen;g.clear();
+      const night=room.level===2;
+      g.fillStyle(night?0xe3e8ef:0xeaf0e3);g.fillRect(0,0,WIDTH,HEIGHT);
+      // Distant hills, drifting clouds and little paper-like scenery.
+      g.fillStyle(night?0xd7dfe6:0xe0e9d5);
+      g.fillEllipse(220,660,880,680);g.fillEllipse(1080,650,900,540);
+      g.fillStyle(night?0xeef0f2:0xf6f7ef,.9);
+      for(const c of [{x:150,y:110,s:1},{x:660,y:150,s:.8},{x:1080,y:82,s:1.15}]){
+        const x=c.x+Math.sin(time/18000+c.x)*13;
+        g.fillRoundedRect(x-60*c.s,c.y,130*c.s,25*c.s,14);g.fillCircle(x-18*c.s,c.y,25*c.s);g.fillCircle(x+22*c.s,c.y-6,32*c.s);
+      }
+      g.fillStyle(0xf6e5a9);g.fillCircle(1030,136,33);
+      g.fillStyle(night?0xbdcbd0:0xcddbbf);g.fillEllipse(30,FLOOR,270,190);g.fillEllipse(1230,FLOOR,320,160);
+      g.fillStyle(night?0xa4b8a0:0xa0b58b);g.fillRoundedRect(0,FLOOR,WIDTH,HEIGHT-FLOOR,0);
+      g.fillStyle(0xc8d5b7);g.fillRect(0,FLOOR,WIDTH,7);
+      g.lineStyle(1,0x8da277,.35);
+      for(let x=15;x<WIDTH;x+=42){g.lineBetween(x,FLOOR+24,x+10,FLOOR+25);g.lineBetween(x+16,FLOOR+52,x+22,FLOOR+53);}
+      for(let i=0;i<28;i++) {
+        const x=25+i*47;g.lineStyle(2,0x8da878);g.lineBetween(x,FLOOR,x-3,FLOOR-8);g.lineBetween(x,FLOOR,x+5,FLOOR-10);
+        if(i%4===0){g.fillStyle(i%3===0?0xf4e5ab:0xf0ceb5);g.fillCircle(x+5,FLOOR-13,3);}
+      }
+      for(const p of LEVELS[room.level].platforms){
+        g.fillStyle(0xaabb94);g.fillRoundedRect(p.x,p.y,p.w,p.h,6);g.fillStyle(0xc8d7b5);g.fillRoundedRect(p.x,p.y,p.w,6,3);
+        g.fillStyle(0xb5c7a0,.3);g.fillRoundedRect(p.x+10,p.y+p.h,p.w-20,19,5);
+      }
+      // A little wayfinding sign and the exit arch.
+      g.fillStyle(0xb5b99a);g.fillRect(80,FLOOR-55,5,55);g.fillStyle(0xe4ddbe);g.fillRoundedRect(53,FLOOR-64,64,26,4);
+      g.lineStyle(2,0x969c7c);g.lineBetween(72,FLOOR-51,99,FLOOR-51);g.lineBetween(92,FLOOR-57,100,FLOOR-51);g.lineBetween(92,FLOOR-45,100,FLOOR-51);
+      g.fillStyle(0xb8c8a6);g.fillRoundedRect(1131,FLOOR-135,104,139,{tl:49,tr:49,bl:0,br:0});
+      g.fillStyle(room.unlocked?0x6f936d:0x93a586);g.fillRoundedRect(1142,FLOOR-123,82,123,{tl:41,tr:41,bl:0,br:0});
+      g.fillStyle(room.unlocked?0xc0ddb0:0xb4c2a3);g.fillCircle(1183,FLOOR-87,10);
+      if(room.unlocked){g.lineStyle(2,0xedf3d3,.7);g.strokeCircle(1183,FLOOR-87,18+Math.sin(time/350)*4);}
+      if(!room.unlocked){g.fillStyle(0x9aa986);g.fillRoundedRect(1060,FLOOR-200,20,200,5);g.lineStyle(2,0xc7d4b5);for(let y=FLOOR-190;y<FLOOR;y+=22)g.lineBetween(1064,y,1076,y+12);}
+      if(room.level===0) for(const s of room.stars){
+        if(s.collected)continue;
+        const y=s.y+Math.sin(time/450+s.x)*4;
+        g.fillStyle(hex(s.color),.12);g.fillCircle(s.x,y,25);g.fillStyle(hex(s.color));
+        const pts=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?7:15;pts.push({x:s.x+Math.cos(a)*r,y:y+Math.sin(a)*r});}g.fillPoints(pts,true);
+      }
+      if(room.level===1) for(const p of room.plates){
+        g.fillStyle(p.active||room.unlocked?0x79946b:0xc4b99c);g.fillRoundedRect(p.x,p.y,p.w,8,3);
+        if(p.active||room.unlocked){g.fillStyle(0xb6d097,.3);g.fillRoundedRect(p.x,p.y-65,p.w,65,10);}
+        g.fillStyle(0xf1efd8);g.fillCircle(p.x+p.w/2,p.y+3,2);
+      }
+      if(room.level===2){
+        g.lineStyle(2,0x879b7b,.65);g.strokeRoundedRect(922,FLOOR-73,76,73,4);
+        g.fillStyle(0x97af7d,.15);g.fillRoundedRect(923,FLOOR-72,74,72,4);
+        const b=room.box;g.fillStyle(0xa9a789);g.fillRoundedRect(b.x,b.y+5,b.w,b.h-5,5);g.fillStyle(0xd7c9a5);g.fillRoundedRect(b.x,b.y,b.w,b.h-7,5);
+        g.lineStyle(3,0xb6a785);g.strokeRoundedRect(b.x+8,b.y+8,b.w-16,b.h-23,3);g.lineBetween(b.x+10,b.y+10,b.x+b.w-10,b.y+b.h-17);g.lineBetween(b.x+b.w-10,b.y+10,b.x+10,b.y+b.h-17);
+      }
+      const known=new Set();
+      for(const p of [...room.players].sort((a,b)=>a.y-b.y)){
+        known.add(p.id);
+        let pos=this.positions.get(p.id);
+        if(!pos||Math.abs(pos.x-p.x)>200||Math.abs(pos.y-p.y)>200)pos={x:p.x,y:p.y};
+        const alpha=1-Math.exp(-delta/38);pos.x+=(p.x-pos.x)*alpha;pos.y+=(p.y-pos.y)*alpha;this.positions.set(p.id,pos);
+        this.character(g,p,pos.x,pos.y,time,room.selfId===p.id);
+        let label=this.labels.get(p.id);
+        if(!label){label=this.add.text(0,0,'',{fontFamily:'DM Sans, sans-serif',fontSize:'12px',color:'#53634b',backgroundColor:'#edf1e4',padding:{x:5,y:3}}).setOrigin(.5,1);this.labels.set(p.id,label);}
+        label.setText(p.name+(p.id===room.selfId?' · tú':''));label.setPosition(pos.x+16,pos.y-17);label.setAlpha(p.connected?1:.45);
+      }
+      for(const [id,label] of this.labels)if(!known.has(id)){label.destroy();this.labels.delete(id);this.positions.delete(id);}
+      if(!this.exitLabel)this.exitLabel=this.add.text(1184,FLOOR-150,'SALIDA',{fontFamily:'DM Sans',fontSize:'10px',color:'#849476',letterSpacing:3}).setOrigin(.5);
+      if(!this.guide)this.guide=this.add.text(WIDTH/2,60,'',{fontFamily:'Outfit, sans-serif',fontSize:'16px',color:'#93a086'}).setOrigin(.5);
+      this.guide.setText(room.unlocked?'Puerta abierta. ¡Nos vemos al otro lado!':room.level===0?'Cada chispa cuenta.':room.level===1?'Encontrar el ritmo también es trabajar en equipo.':`Hacen falta ${room.requiredPushers} compañeros empujando a la vez.`);
+    }
+    character(g,p,x,y,time,isMe){
+      const c=hex(p.color),bounce=p.grounded&&Math.abs(p.vx)>5?Math.sin(time/85)*2:0;y+=bounce;
+      g.fillStyle(0x4d6446,.12);g.fillEllipse(x+16,FLOOR+2,34,8);
+      g.fillStyle(c,p.connected?1:.35);
+      if(p.accessory==='ears'){g.fillTriangle(x+1,y+8,x+1,y-8,x+14,y+3);g.fillTriangle(x+18,y+3,x+31,y-8,x+31,y+10);}
+      g.fillRoundedRect(x,y,32,37,11);
+      const walk=p.grounded?Math.sin(time/85)*Math.min(3,Math.abs(p.vx)/60):0;
+      g.fillRoundedRect(x+4,y+31+walk,9,11,4);g.fillRoundedRect(x+20,y+31-walk,9,11,4);
+      g.fillCircle(x-1,y+23+walk,4);g.fillCircle(x+33,y+23-walk,4);
+      if(p.accessory==='sprout'){g.lineStyle(2,0x576f44);g.lineBetween(x+16,y,x+16,y-12);g.fillStyle(0x789361);g.fillEllipse(x+11,y-11,12,6);g.fillEllipse(x+22,y-15,12,7);}
+      if(p.accessory==='cap'){g.fillStyle(0x46515e);g.fillRoundedRect(x-1,y-5,34,13,{tl:10,tr:10,bl:0,br:0});g.fillRoundedRect(x+16,y+4,24,4,2);}
+      g.fillStyle(0x303943);g.fillEllipse(x+10+p.facing*1.5,y+15,3,5);g.fillEllipse(x+23+p.facing*1.5,y+15,3,5);
+      g.lineStyle(1.3,0x303943);g.lineBetween(x+14,y+24,x+17,y+26);g.lineBetween(x+17,y+26,x+20,y+24);
+      g.fillStyle(0xffffff,.25);g.fillCircle(x+6,y+22,3);g.fillCircle(x+28,y+22,3);
+      if(isMe){g.fillStyle(0xe97752);g.fillTriangle(x+12,y-40,x+20,y-40,x+16,y-34);}
+    }
+  }
+  const game=new Phaser.Game({type:Phaser.AUTO,parent,width:WIDTH,height:HEIGHT,backgroundColor:'#eaf0e3',scene:Garden,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},render:{antialias:true,roundPixels:false},audio:{noAudio:true},banner:false});
+  return ()=>game.destroy(true);
+}
