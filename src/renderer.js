@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { WIDTH, HEIGHT, FLOOR, LEVELS } from '../shared/game.js';
+import { WIDTH, HEIGHT, FLOOR, LEVELS, hasStars } from '../shared/game.js';
 
 const hex=c=>parseInt(c.replace('#',''),16);
 export function createRenderer(parent,getState) {
@@ -8,7 +8,7 @@ export function createRenderer(parent,getState) {
     update(time,delta) {
       const room=getState();if(!room?.players)return;
       const g=this.pen;g.clear();
-      const night=room.level===2;
+      const night=[2,5].includes(room.level);
       g.fillStyle(night?0xe3e8ef:0xeaf0e3);g.fillRect(0,0,WIDTH,HEIGHT);
       // Distant hills, drifting clouds and little paper-like scenery.
       g.fillStyle(night?0xd7dfe6:0xe0e9d5);
@@ -28,6 +28,13 @@ export function createRenderer(parent,getState) {
         const x=25+i*47;g.lineStyle(2,0x8da878);g.lineBetween(x,FLOOR,x-3,FLOOR-8);g.lineBetween(x,FLOOR,x+5,FLOOR-10);
         if(i%4===0){g.fillStyle(i%3===0?0xf4e5ab:0xf0ceb5);g.fillCircle(x+5,FLOOR-13,3);}
       }
+      const level=LEVELS[room.level];
+      if(level.river){
+        const r=level.river;g.fillStyle(0x9bbac0);g.fillRect(r.x,FLOOR,r.w,HEIGHT-FLOOR);
+        g.fillStyle(0xd8e7e2,.65);g.fillRect(r.x,FLOOR,r.w,5);g.lineStyle(2,0xcce0dd,.6);
+        for(let x=r.x+12;x<r.x+r.w-15;x+=45){const shift=Math.sin(time/700+x)*6;g.lineBetween(x+shift,FLOOR+22,x+shift+17,FLOOR+22);g.lineBetween(x+10-shift,FLOOR+49,x+28-shift,FLOOR+49);}
+        const cp=level.platforms[level.checkpoint];g.lineStyle(3,0x7a9673);g.lineBetween(cp.x+cp.w/2,cp.y,cp.x+cp.w/2,cp.y-67);g.fillStyle(0xe8bd68);g.fillTriangle(cp.x+cp.w/2,cp.y-67,cp.x+cp.w/2+30,cp.y-55,cp.x+cp.w/2,cp.y-43);
+      }
       for(const p of LEVELS[room.level].platforms){
         g.fillStyle(0xaabb94);g.fillRoundedRect(p.x,p.y,p.w,p.h,6);g.fillStyle(0xc8d7b5);g.fillRoundedRect(p.x,p.y,p.w,6,3);
         g.fillStyle(0xb5c7a0,.3);g.fillRoundedRect(p.x+10,p.y+p.h,p.w-20,19,5);
@@ -40,16 +47,22 @@ export function createRenderer(parent,getState) {
       g.fillStyle(room.unlocked?0xc0ddb0:0xb4c2a3);g.fillCircle(1183,FLOOR-87,10);
       if(room.unlocked){g.lineStyle(2,0xedf3d3,.7);g.strokeCircle(1183,FLOOR-87,18+Math.sin(time/350)*4);}
       if(!room.unlocked){g.fillStyle(0x9aa986);g.fillRoundedRect(1060,FLOOR-200,20,200,5);g.lineStyle(2,0xc7d4b5);for(let y=FLOOR-190;y<FLOOR;y+=22)g.lineBetween(1064,y,1076,y+12);}
-      if(room.level===0) for(const s of room.stars){
+      if(hasStars(room.level)) for(const s of room.stars){
         if(s.collected)continue;
         const y=s.y+Math.sin(time/450+s.x)*4;
         g.fillStyle(hex(s.color),.12);g.fillCircle(s.x,y,25);g.fillStyle(hex(s.color));
         const pts=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?7:15;pts.push({x:s.x+Math.cos(a)*r,y:y+Math.sin(a)*r});}g.fillPoints(pts,true);
       }
-      if(room.level===1) for(const p of room.plates){
-        g.fillStyle(p.active||room.unlocked?0x79946b:0xc4b99c);g.fillRoundedRect(p.x,p.y,p.w,8,3);
+      if([1,4,5].includes(room.level)) for(const p of room.plates){
+        const current=room.level===4&&p.owner===room.relayOrder[room.relayStep];
+        g.fillStyle(p.active||room.unlocked?0x79946b:p.color?hex(p.color):0xc4b99c);g.fillRoundedRect(p.x,p.y,p.w,8,3);
         if(p.active||room.unlocked){g.fillStyle(0xb6d097,.3);g.fillRoundedRect(p.x,p.y-65,p.w,65,10);}
+        if(current){g.lineStyle(2,room.signalOpen?0x689862:0xdb9f73);g.strokeRoundedRect(p.x-5,p.y-8,p.w+10,20,5);}
         g.fillStyle(0xf1efd8);g.fillCircle(p.x+p.w/2,p.y+3,2);
+      }
+      if(room.level===4){
+        g.fillStyle(0xb9bea3);g.fillRoundedRect(610,200,60,155,25);g.fillStyle(room.signalOpen?0x8cad78:0xd79372);g.fillCircle(640,230,18);g.fillStyle(room.signalOpen?0xd3e7aa:0xf0ceaa);g.fillCircle(640,230,8);
+        for(let i=0;i<room.players.length;i++){g.fillStyle(i<room.relayStep?0x84a36f:0xd4d8c6);g.fillCircle(640+(i-(room.players.length-1)/2)*22,389,6);}
       }
       if(room.level===2){
         g.lineStyle(2,0x879b7b,.65);g.strokeRoundedRect(922,FLOOR-73,76,73,4);
@@ -71,7 +84,8 @@ export function createRenderer(parent,getState) {
       for(const [id,label] of this.labels)if(!known.has(id)){label.destroy();this.labels.delete(id);this.positions.delete(id);}
       if(!this.exitLabel)this.exitLabel=this.add.text(1184,FLOOR-150,'SALIDA',{fontFamily:'DM Sans',fontSize:'10px',color:'#849476',letterSpacing:3}).setOrigin(.5);
       if(!this.guide)this.guide=this.add.text(WIDTH/2,60,'',{fontFamily:'Outfit, sans-serif',fontSize:'16px',color:'#93a086'}).setOrigin(.5);
-      this.guide.setText(room.unlocked?'Puerta abierta. ¡Nos vemos al otro lado!':room.level===0?'Cada chispa cuenta.':room.level===1?'Encontrar el ritmo también es trabajar en equipo.':`Hacen falta ${room.requiredPushers} compañeros empujando a la vez.`);
+      const relayName=room.players.find(p=>p.id===room.relayOrder?.[room.relayStep])?.name||'';
+      this.guide.setText(room.unlocked?'Puerta abierta. ¡Nos vemos al otro lado!':room.level===0?'Cada chispa cuenta.':room.level===1?'Encontrar el ritmo también es trabajar en equipo.':room.level===2?`Hacen falta ${room.requiredPushers} compañeros empujando a la vez.`:room.level===3?'Si caes, vuelve a intentarlo. La bandera es tu punto de control.':room.level===4?`Turno de ${relayName} · ${room.signalOpen?'VERDE: entra en tu botón':'espera fuera del botón'}`:'Una persona en su botón de color. Manténganlos dos segundos.');
     }
     character(g,p,x,y,time,isMe){
       const c=hex(p.color),bounce=p.grounded&&Math.abs(p.vx)>5?Math.sin(time/85)*2:0;y+=bounce;

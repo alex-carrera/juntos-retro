@@ -115,4 +115,4 @@ setInterval(()=>{
   for(const room of rooms.values()) if(!room.players.some(p=>p.connected)&&Date.now()-room.lastActive>10*60*1000) rooms.delete(room.code);
 },15000);
 const port=Number(process.env.PORT)||3000;
-server.listen(port,'0.0.0.0',()=>console.log(`Juntos está listo: http://localhost:${port}`));
+server.listen(port,'0.0.0.0',()=>console.log(`Soporte Tier 3 Retro está listo: http://localhost:${port}`));

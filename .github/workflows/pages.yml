@@ -1,4 +1,4 @@
-name: Publicar Juntos en GitHub Pages
+name: Publicar Soporte Tier 3 en GitHub Pages
 on:
   push:
     branches: [main]

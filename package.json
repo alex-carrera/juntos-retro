@@ -1,9 +1,9 @@
 {
-  "name": "juntos-retro",
+  "name": "soporte-tier-3-retro",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Tres pequeños retos cooperativos para una retro de siete personas.",
+  "description": "Seis retos cooperativos para la retro de Soporte Tier 3.",
   "scripts": {
     "dev": "node server/index.js",
     "build": "vite build",
@@ -19,5 +19,7 @@
   "devDependencies": {
     "vite": "^6.4.1"
   },
-  "engines": {"node": ">=20.19"}
+  "engines": {
+    "node": ">=20.19"
+  }
 }

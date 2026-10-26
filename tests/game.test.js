@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makePlayer, startLevel, stepRoom, publicRoom, PALETTE, FLOOR } from '../shared/game.js';
+import { makePlayer, startLevel, stepRoom, publicRoom, PALETTE, FLOOR, LEVELS } from '../shared/game.js';
 import { updateBot } from '../shared/bots.js';
 const room=()=>({code:'TEST7',hostId:'p0',players:PALETTE.map((c,i)=>makePlayer('p'+i,'Persona '+i,c))});
 const steps=(r,n=60)=>{for(let i=0;i<n;i++)stepRoom(r,1/30);};
@@ -19,11 +19,11 @@ test('Los siete botones deben estar ocupados simultáneamente y se quedan abiert
   r.players[6].x=r.plates[6].x+14;steps(r,40);assert.equal(r.unlocked,true);
   r.players.forEach(p=>p.x=30);steps(r);assert.equal(r.unlocked,true);
 });
-test('Cuatro de siete empujan el bloque y el equipo completo termina el juego',()=>{
+test('Cuatro de siete empujan el bloque y el equipo avanza al cuarto nivel',()=>{
   const r=room();startLevel(r,2);assert.equal(r.requiredPushers,4);
   r.players.forEach((p,i)=>{p.x=i<4?530:60;p.input.right=i<3;});steps(r,20);assert.equal(r.box.x,610);
   r.players[3].input.right=true;steps(r,110);assert.equal(r.unlocked,true);
-  r.players.forEach(p=>{p.x=1180;p.y=FLOOR-42;p.input.right=false;});steps(r,4);assert.equal(r.status,'finished');
+  r.players.forEach(p=>{p.x=1180;p.y=FLOOR-42;p.input.right=false;});steps(r,4);assert.equal(r.status,'cleared');
 });
 test('Un compañero desconectado pausa la física',()=>{
   const r=room();startLevel(r,0);r.players[0].input.right=true;r.players[3].connected=false;
@@ -40,11 +40,35 @@ test('El jugador puede alcanzar ambas plataformas desde el suelo',()=>{
   p.x=459;p.input={right:true,left:false,jump:true};steps(r,22);p.input={right:false,left:false,jump:false};steps(r,12);
   assert.equal(p.y+p.h,454);
 });
-test('Un equipo de siete recorre y completa los tres niveles con la física real',()=>{
+test('Equipos de dos y siete recorren los seis niveles con la física real',()=>{
+ for(const count of [2,7]){
   const r=room();
-  for(let level=0;level<3;level++){
+  r.players=r.players.slice(0,count);
+  for(let level=0;level<LEVELS.length;level++){
     startLevel(r,level);r.players.forEach(p=>p.route=0);
-    for(let frame=0;frame<3600&&r.status==='playing';frame++){for(const p of r.players)updateBot(r,p);stepRoom(r,1/30);}
-    assert.equal(r.status,level===2?'finished':'cleared',`Nivel ${level+1} debe poder completarse`);
+    for(let frame=0;frame<9000&&r.status==='playing';frame++){for(const p of r.players)updateBot(r,p);stepRoom(r,1/30);}
+    assert.equal(r.status,level===LEVELS.length-1?'finished':'cleared',`Nivel ${level+1}, ${count} jugadores debe poder completarse`);
   }
+ }
+});
+test('Caer al río devuelve al punto de control y conserva la chispa',()=>{
+  const r=room();startLevel(r,3);const p=r.players[0],cp=LEVELS[3].platforms[2];
+  p.x=cp.x+20;p.y=cp.y-p.h;steps(r,2);assert.equal(p.checkpointStage,3);
+  const checkpoint={...p.checkpoint};p.spark=true;r.stars[0].collected=true;
+  p.x=750;p.y=FLOOR-p.h;stepRoom(r,1/30);assert.equal(p.x,checkpoint.x);assert.equal(p.y,checkpoint.y);assert.equal(p.spark,true);assert.equal(r.stars[0].collected,true);
+});
+test('El relevo ignora a quien no tiene turno y obliga a entrar con luz verde',()=>{
+  const r=room();startLevel(r,4);const p=r.players[0],wrong=r.players[1],plate=r.plates[0];
+  wrong.x=plate.x+14;steps(r,45);assert.equal(r.relayStep,0);wrong.x=40;
+  r.elapsed=0;p.x=plate.x+14;steps(r,45);assert.equal(r.relayStep,0);assert.equal(r.relayArmed,false);
+  p.x=100;stepRoom(r,1/30);p.x=plate.x+14;steps(r,21);assert.equal(r.relayStep,1);
+  assert.equal(r.plates[0].active,true);
+});
+test('La sincronía final exige el dueño de cada botón y dos segundos continuos',()=>{
+  const r=room();startLevel(r,5);r.stars.forEach(s=>s.collected=true);
+  const place=()=>r.players.forEach((p,i)=>{p.x=r.plates[i].x+10;p.y=r.plates[i].y+8-p.h;});
+  place();const left=r.players[0].x;r.players[0].x=r.players[1].x;r.players[0].y=r.players[1].y;r.players[1].x=left;r.players[1].y=r.plates[0].y+8-r.players[1].h;
+  steps(r,70);assert.equal(r.unlocked,false);
+  place();steps(r,30);assert.equal(r.unlocked,false);r.players[0].x=50;stepRoom(r,1/30);assert.equal(r.progress,0);
+  place();steps(r,65);assert.equal(r.unlocked,true);
 });
