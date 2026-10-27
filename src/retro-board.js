@@ -1,30 +1,12 @@
 import { RETRO_COLUMNS, RETRO_PHASES, PHASE_LABELS, exportRetroMarkdown } from '../shared/retro.js';
-import { createRetroMusic } from './retro-music.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function mountRetro(root,{getState,dispatch,notify,share,leave,showHistory}){
   const board=getState().retro;
-  root.innerHTML=`<section class="retro-intro"><div><div class="eyebrow">DE JUGAR JUNTOS A MEJORAR JUNTOS</div><h1 id="retro-title"></h1><p>Hablemos del squad: lo que nos ayudó, lo que nos frenó y qué haremos diferente.</p></div><span class="retro-save" id="retro-save" role="status"></span></section><div class="retro-toolbar"><div class="retro-phases" id="retro-phases"></div><div class="retro-tools"><button class="ghost" data-action="title">Renombrar</button><button class="secondary" data-action="share">Compartir ↗</button><button class="secondary" data-action="export">Descargar notas ↓</button><button class="ghost" data-action="history">Historial</button><button class="ghost" data-action="leave">Salir</button></div></div><div class="retro-ambience"><div><button class="secondary" id="retro-music" type="button" aria-pressed="false">♫ Música relajante</button><span id="retro-music-status" role="status">Ambiente suave · solo para ti</span><a class="secondary retro-spotify" id="retro-spotify" href="https://open.spotify.com/playlist/4kAqBBEZQsBIXMIJl6u8tO" target="_blank" rel="noopener noreferrer" aria-label="Abrir StreamBeats Lofi en Spotify, en otra pestaña">Lofi en Spotify ↗</a></div><label class="retro-volume" for="retro-volume">Volumen <input id="retro-volume" type="range" min="0" max="100" step="1" value="25"/><output id="retro-volume-value" for="retro-volume">25%</output></label></div><div class="retro-presence"><div id="retro-people"></div><span id="retro-votes"></span></div><div class="retro-session-note" id="retro-session-note"></div><div class="retro-search"><label for="retro-filter">Buscar en las tarjetas</label><input type="search" id="retro-filter" placeholder="Una idea, una palabra o un compañero…"/></div><div class="retro-columns">${RETRO_COLUMNS.map(c=>`<section class="retro-column ${c.color}"><header><span class="column-icon">${c.icon}</span><div><h2>${c.title}</h2><p>${c.hint}</p></div><span class="column-count" id="count-${esc(c.id)}">0</span></header><form class="retro-composer" data-column="${esc(c.id)}"><label class="sr-only" for="draft-${esc(c.id)}">Nueva idea en ${c.title}</label><textarea id="draft-${esc(c.id)}" maxlength="600" rows="3" placeholder="Escribe una idea por tarjeta…"></textarea><div><small id="limit-${esc(c.id)}">0 / 600</small><button class="primary" type="submit">Añadir ＋</button></div></form><div class="retro-cards" id="cards-${esc(c.id)}"></div></section>`).join('')}</div><p class="retro-privacy">El enlace privado permite leer y participar en esta retro. Comparte el acceso con tu squad. Las notas no se publican en GitHub.</p>`;
+  root.innerHTML=`<section class="retro-intro"><div><div class="eyebrow">DE JUGAR JUNTOS A MEJORAR JUNTOS</div><h1 id="retro-title"></h1><p>Hablemos del squad: lo que nos ayudó, lo que nos frenó y qué haremos diferente.</p></div><span class="retro-save" id="retro-save" role="status"></span></section><div class="retro-toolbar"><div class="retro-phases" id="retro-phases"></div><div class="retro-tools"><button class="ghost" data-action="title">Renombrar</button><button class="secondary" data-action="share">Compartir ↗</button><button class="secondary" data-action="export">Descargar notas ↓</button><button class="ghost" data-action="history">Historial</button><button class="ghost" data-action="leave">Salir</button></div></div><div class="retro-ambience"><div><a class="secondary retro-spotify" id="retro-spotify" href="https://open.spotify.com/artist/7CvWoscqVQJvqb0OcBRQO7" target="_blank" rel="noopener noreferrer" aria-label="Escuchar Hola Beats en Spotify, en otra pestaña">♫ Escuchar Hola Beats ↗</a><span>La música de esta retro · inicia la reproducción en Spotify</span></div></div><div class="retro-presence"><div id="retro-people"></div><span id="retro-votes"></span></div><div class="retro-session-note" id="retro-session-note"></div><div class="retro-search"><label for="retro-filter">Buscar en las tarjetas</label><input type="search" id="retro-filter" placeholder="Una idea, una palabra o un compañero…"/></div><div class="retro-columns">${RETRO_COLUMNS.map(c=>`<section class="retro-column ${c.color}"><header><span class="column-icon">${c.icon}</span><div><h2>${c.title}</h2><p>${c.hint}</p></div><span class="column-count" id="count-${esc(c.id)}">0</span></header><form class="retro-composer" data-column="${esc(c.id)}"><label class="sr-only" for="draft-${esc(c.id)}">Nueva idea en ${c.title}</label><textarea id="draft-${esc(c.id)}" maxlength="600" rows="3" placeholder="Escribe una idea por tarjeta…"></textarea><div><small id="limit-${esc(c.id)}">0 / 600</small><button class="primary" type="submit">Añadir ＋</button></div></form><div class="retro-cards" id="cards-${esc(c.id)}"></div></section>`).join('')}</div><p class="retro-privacy">El enlace privado permite leer y participar en esta retro. Comparte el acceso con tu squad. Las notas no se publican en GitHub.</p>`;
   const $=selector=>root.querySelector(selector);
-  const musicButton=$('#retro-music'),volumeInput=$('#retro-volume');
-  let musicEnabled=false,musicBusy=false,destroyed=false;
-  const music=createRetroMusic(({playing,enabled,volume})=>{
-    if(destroyed)return;
-    musicEnabled=enabled;musicButton.setAttribute('aria-pressed',String(enabled));
-    musicButton.textContent=enabled?'Ⅱ Pausar música':'♫ Música relajante';
-    $('#retro-music-status').textContent=playing?'Sonando · ambiente suave solo para ti':enabled?'Música en pausa mientras vuelves':'Ambiente suave · solo para ti';
-    volumeInput.value=String(Math.round(volume*100));$('#retro-volume-value').textContent=volumeInput.value+'%';
-  });
-  volumeInput.value=String(Math.round(music.volume*100));$('#retro-volume-value').textContent=volumeInput.value+'%';
-  volumeInput.oninput=()=>music.setVolume(Number(volumeInput.value)/100);
-  musicButton.onclick=async()=>{
-    if(musicBusy)return;musicBusy=true;musicButton.disabled=true;
-    try{if(musicEnabled)await music.pause();else await music.play();}catch(error){notify(error.message||'No pudimos activar la música. Vuelve a intentarlo.');}
-    finally{musicBusy=false;if(!destroyed)musicButton.disabled=false;}
-  };
   $('#retro-spotify').addEventListener('click',()=>{
-    music.pause().catch(()=>{});
-    notify('StreamBeats · Lofi se abre en Spotify. Inicia la reproducción allí; cada persona escucha por su cuenta.');
+    notify('Hola Beats se abre en Spotify. Inicia la reproducción allí; cada persona escucha por su cuenta.');
   });
   let currentKey='',pending=new Map();
   const drafts={};
@@ -89,5 +71,5 @@ export function mountRetro(root,{getState,dispatch,notify,share,leave,showHistor
     layer.querySelector('#delete-note').onclick=()=>{dispatch({type:'retro-delete',id:card.id,version:card.version});layer.remove();};
   }
   function rename(){const layer=modal(`<h2>Nombre de la retro</h2><form><label for="retro-new-title">Título</label><input id="retro-new-title" maxlength="80" value="${esc(getState().retro.title)}" required/><div class="modal-actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Guardar</button></div></form>`);layer.querySelector('input').focus();layer.querySelector('form').onsubmit=e=>{e.preventDefault();dispatch({type:'retro-title',title:layer.querySelector('input').value});layer.remove();};}
-  return {update,onError(){pending.clear();update();},destroy(){destroyed=true;music.destroy();root.innerHTML='';}};
+  return {update,onError(){pending.clear();update();},destroy(){root.innerHTML='';}};
 }

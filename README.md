@@ -6,11 +6,13 @@ Seis retos cooperativos para 2–7 personas, seguidos por un tablero de retrospe
 
 ## De la aventura a la retro
 
-1. Crea una sala, comparte su enlace o QR y espera al equipo.
+1. En el inicio elige **Jugar con el equipo** para crear una sala, comparte su enlace o QR y espera al equipo.
 2. Todos marcan «Estoy listo» y quien facilita inicia.
 3. Completen seis retos con cuerdas, caídas, agarres, cintas y ráfagas.
 4. Cuando todos llegan a la última salida, el tablero de retro se abre automáticamente para todo el equipo.
 5. Escriban ideas, voten y acuerden acciones. La retro queda guardada en Supabase.
+
+Para saltarse la aventura, elige **Crear una retro** en el inicio: se abre un tablero compartido sin tener que completar niveles ni esperar a otra persona. Comparte su enlace privado para que entre el equipo. Puedes volver a tableros anteriores desde **Mis retrospectivas guardadas**.
 
 Quien facilita también puede abrir el tablero desde la sala o el botón «Retro» durante un nivel, para respetar el tiempo de la reunión. Eso termina la aventura de esa sala. La demo local permite revisar juego y tablero con compañeros automáticos; sus notas no se guardan en la nube.
 
@@ -41,8 +43,7 @@ Tres columnas: **Lo que funcionó**, **Podemos mejorar** y **Próximos pasos**. 
 - Tres votos por persona; se pueden retirar para cambiar de idea.
 - Acciones con responsable y estado pendiente/hecha.
 - Búsqueda, título editable y descarga de notas en Markdown.
-- Música ambiental relajante con botón de reproducción/pausa y volumen individual. Se genera en el navegador con síntesis propia, sin grabaciones ni pistas de terceros; empieza al tocar «Música relajante», se pausa al ocultar la pestaña y se detiene al salir del tablero.
-- Botón **Lofi en Spotify**: abre la playlist oficial [StreamBeats – Lofi](https://open.spotify.com/playlist/4kAqBBEZQsBIXMIJl6u8tO) en otra pestaña y pausa el ambiente local. Cada persona inicia su reproducción en Spotify. Es un enlace externo: no se incluyen pistas de Spotify en el juego ni se sincroniza su reproducción. StreamBeats conserva sus derechos y ofrece una [licencia gratuita para determinados usos](https://www.streambeats.com/licensing/); no se presenta como música de dominio público.
+- Música: únicamente el enlace de **Hola Beats** que eligió el equipo. **Escuchar Hola Beats** abre su [perfil de artista en Spotify](https://open.spotify.com/artist/7CvWoscqVQJvqb0OcBRQO7); cada persona inicia la reproducción allí. El enlace compartido es de artista, no de playlist. No se descargan canciones ni se sincroniza su reproducción con la partida.
 - Historial guardado y reapertura desde «Mis retrospectivas guardadas».
 - El enlace privado del tablero permite que el squad vuelva a leer y participar. Guárdenlo en un lugar compartido de confianza.
 
