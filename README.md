@@ -41,6 +41,7 @@ Tres columnas: **Lo que funcionó**, **Podemos mejorar** y **Próximos pasos**. 
 - Tres votos por persona; se pueden retirar para cambiar de idea.
 - Acciones con responsable y estado pendiente/hecha.
 - Búsqueda, título editable y descarga de notas en Markdown.
+- Música ambiental relajante con botón de reproducción/pausa y volumen individual. Se genera en el navegador con síntesis propia, sin grabaciones ni pistas de terceros; empieza al tocar «Música relajante», se pausa al ocultar la pestaña y se detiene al salir del tablero.
 - Historial guardado y reapertura desde «Mis retrospectivas guardadas».
 - El enlace privado del tablero permite que el squad vuelva a leer y participar. Guárdenlo en un lugar compartido de confianza.
 
