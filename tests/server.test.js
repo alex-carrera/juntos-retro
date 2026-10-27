@@ -27,6 +27,7 @@ test('Sala real: siete personas, límite de cupos, inicio, pausa y reconexión',
   const active=await waitMessage(host,m=>m.type==='state'&&m.room.players.every(p=>p.connected));assert.equal(active.room.players.length,7);
   const late=await open(port);clients.push(late);const denied=waitMessage(late,m=>m.type==='error');late.send(JSON.stringify({type:'join',code,name:'Tarde'}));assert.match((await denied).message,/empezó/);
   const board=waitMessage(host,m=>m.type==='state'&&m.room.status==='retro');host.send(JSON.stringify({type:'open-retro'}));const shared=(await board).room;assert.ok(shared.retro.id);assert.equal(shared.retro.phase,'write');
+  const timerState=waitMessage(clients[2],m=>m.type==='state'&&m.room.retro?.round?.mode==='running');host.send(JSON.stringify({type:'retro-timer',command:'start'}));const timed=await timerState;assert.ok(timed.room.retro.round.endsAt>Date.now());assert.ok(timed.serverNow);
   const guest=clients[2],added=waitMessage(host,m=>m.type==='state'&&m.room.retro?.cards.length===1);guest.send(JSON.stringify({type:'retro-add',column:'good',text:'Nos ayudamos para cruzar.'}));const written=(await added).room;assert.equal(written.retro.cards[0].text,'Nos ayudamos para cruzar.');
   const voting=waitMessage(guest,m=>m.type==='state'&&m.room.retro?.phase==='vote');host.send(JSON.stringify({type:'retro-phase',phase:'vote'}));await voting;
   const voted=waitMessage(host,m=>m.type==='state'&&m.room.retro?.cards[0]?.voters.length===1);guest.send(JSON.stringify({type:'retro-vote',id:written.retro.cards[0].id}));await voted;

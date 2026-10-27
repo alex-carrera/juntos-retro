@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './storage-config.js';
 import { PALETTE } from '../shared/game.js';
 import { RETRO_PHASES, RETRO_COLUMNS } from '../shared/retro.js';
+import { normaliseRound } from '../shared/retro-round.js';
 
 export const hash=value=>createHash('sha256').update(String(value)).digest('hex');
 const memory=new Map();
@@ -12,7 +13,7 @@ function normaliseArchive(data,id){
   if(!players.length)throw new Error('Esta retro no tiene participantes válidos.');
   const date=value=>Number.isFinite(Date.parse(value))?new Date(value).toISOString():new Date().toISOString();
   const cards=data.retro.cards.slice(0,200).filter(c=>c&&/^[a-f\d-]{36}$/i.test(c.id)&&RETRO_COLUMNS.some(col=>col.id===c.column)).map(c=>({id:c.id,column:c.column,text:clean(c.text,600),authorId:clean(c.authorId,64),authorName:clean(c.authorName,16),createdAt:date(c.createdAt),version:Math.max(1,Math.min(1000000,Number(c.version)||1)),voters:[...new Set(Array.isArray(c.voters)?c.voters.filter(id=>players.some(p=>p.id===id)):[])],done:c.done===true,assignee:clean(c.assignee,40)}));
-  return {code:clean(data.code,50),hostId:players.some(p=>p.id===data.hostId)?data.hostId:players[0].id,players,retro:{id,title:clean(data.retro.title,80)||'Retro Squad · Soporte Tier 3',createdAt:date(data.retro.createdAt),phase:RETRO_PHASES.includes(data.retro.phase)?data.retro.phase:'closed',cards,revision:Math.max(0,Number(data.retro.revision)||0),persistence:'cloud',saveStatus:'saved',savedAt:date(data.retro.savedAt)}};
+  return {code:clean(data.code,50),hostId:players.some(p=>p.id===data.hostId)?data.hostId:players[0].id,players,retro:{id,title:clean(data.retro.title,80)||'Retro Squad · Soporte Tier 3',createdAt:date(data.retro.createdAt),phase:RETRO_PHASES.includes(data.retro.phase)?data.retro.phase:'closed',cards,round:normaliseRound(data.retro.round),revision:Math.max(0,Number(data.retro.revision)||0),persistence:'cloud',saveStatus:'saved',savedAt:date(data.retro.savedAt)}};
 }
 export function snapshotRoom(room){
   return {hostId:room.hostId,code:room.code,retro:{...room.retro,key:undefined,saveStatus:'saved',savedAt:new Date().toISOString()},players:room.players.map(p=>({id:p.id,name:p.name,color:p.color,accessory:p.accessory,tokenHash:p.token?hash(p.token):p.tokenHash}))};

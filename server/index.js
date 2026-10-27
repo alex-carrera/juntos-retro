@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 import { MAX_PLAYERS, PALETTE, makePlayer, startLevel, stepRoom, publicRoom } from '../shared/game.js';
 import { openRetro, applyRetroAction } from '../shared/retro.js';
+import { tickRetroRound } from '../shared/retro-round.js';
 import { hash, loadArchive, queueArchiveSave } from './retro-storage.js';
 
 const ROOT=fileURLToPath(new URL('../',import.meta.url));
@@ -17,9 +18,9 @@ if(!production) {
   const {createServer}=await import('vite');
   vite=await createServer({server:{middlewareMode:true},appType:'spa'});
 }
-const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.woff2':'font/woff2','.json':'application/json'};
+const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.woff2':'font/woff2','.json':'application/json','.mp3':'audio/mpeg'};
 const server=http.createServer(async(req,res)=>{
-  if(req.url==='/health') {res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,version:'squad-ropes-retro-v2'}));return;}
+  if(req.url==='/health') {res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,version:'retro-rounds-audio-v3'}));return;}
   if(vite) {vite.middlewares(req,res);return;}
   try {
     const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
@@ -44,7 +45,7 @@ const send=(ws,data)=>{if(ws?.readyState===WebSocket.OPEN) ws.send(JSON.stringif
 const fail=(ws,message)=>send(ws,{type:'error',message});
 const cleanName=n=>String(n||'').trim().replace(/[\u0000-\u001f\u007f]/g,'').slice(0,16)||'Compañero';
 const code=()=>Array.from(randomBytes(5),b=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b%32]).join('');
-const broadcast=room=>{for(const p of room.players) send(p.ws,{type:'state',room:publicRoom(room,p.id)});};
+const broadcast=room=>{for(const p of room.players) send(p.ws,{type:'state',serverNow:Date.now(),room:publicRoom(room,p.id)});};
 const finishMembership=(ws,room,p)=>{ws.room=room;ws.player=p;p.ws=ws;p.connected=true;room.lastActive=Date.now();send(ws,{type:'joined',token:p.token,code:room.code,id:p.id});broadcast(room);};
 const removePlayer=(room,p)=>{room.players=room.players.filter(o=>o!==p);if(room.hostId===p.id) room.hostId=room.players.find(p=>p.connected)?.id||room.players[0]?.id;if(!room.players.length)rooms.delete(room.code);};
 function beginRetro(room){openRetro(room,{id:randomUUID(),key:randomBytes(32).toString('hex')});queueArchiveSave(room,broadcast);broadcast(room);}
@@ -114,6 +115,7 @@ wss.on('connection',ws=>{
     const room=ws.room,p=ws.player;
     if(!room || !p) return;
     room.lastActive=Date.now();
+    if(tickRetroRound(room.retro)){queueArchiveSave(room,broadcast);broadcast(room);}
     if(msg.type==='input') {p.input={left:msg.left===true,right:msg.right===true,jump:msg.jump===true,grip:msg.grip===true};return;}
     if(msg.type.startsWith('retro-')){applyRetroAction(room,p,msg,randomUUID);queueArchiveSave(room,broadcast);broadcast(room);return;}
     if(msg.type==='ready' && room.status==='lobby') {p.ready=msg.ready===true;broadcast(room);return;}
@@ -147,6 +149,7 @@ wss.on('connection',ws=>{
     broadcast(room);
   });
 });
+setInterval(()=>{for(const room of rooms.values())if(tickRetroRound(room.retro)){queueArchiveSave(room,broadcast);broadcast(room);}},250);
 setInterval(()=>{for(const room of rooms.values()){stepRoom(room,1/30);if(room.status==='finished')beginRetro(room);else if(['playing','cleared'].includes(room.status))broadcast(room);}},1000/30);
 setInterval(()=>{
   for(const ws of wss.clients) {if(!ws.alive){ws.terminate();continue;}ws.alive=false;ws.ping();}

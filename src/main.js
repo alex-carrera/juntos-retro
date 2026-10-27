@@ -15,7 +15,7 @@ profile={name:String(profile.name||'').slice(0,16),color:PALETTE.includes(profil
 let state=null,ws=null,destroyRenderer=null,demo=null,demoTimer=null,reconnectTimer=null,connectionTimeout=null,pendingAction=null,screen='',renderKey='',retry=0,leaving=false,sound=false,audioCtx=null,lastStatus='',lastUnlocked=false,lastSpark=false;
 let session;try{session=JSON.parse(sessionStorage.getItem('juntos-session')||'null');}catch{session=null;}
 const input={left:false,right:false,jump:false,grip:false};
-let boardUI=null,createRetroAfterJoin=false;
+let boardUI=null,createRetroAfterJoin=false,serverOffset=0;
 function storedRetros(){try{return JSON.parse(localStorage.getItem('tier3-retro-history')||'[]').filter(b=>b.id&&b.key);}catch{return [];}}
 function fragmentRetro(){const value=new URLSearchParams(location.hash.slice(1)).get('retro')||'',dot=value.indexOf('.');return dot>0?{id:value.slice(0,dot),key:value.slice(dot+1)}:null;}
 let archiveRef=fragmentRetro();
@@ -65,7 +65,7 @@ function openSocket(){
   ws.onmessage=e=>{
     let msg;try{msg=JSON.parse(e.data);}catch{return;}
     if(msg.type==='joined'){session={code:msg.code,token:msg.token};sessionStorage.setItem('juntos-session',JSON.stringify(session));const url=new URL(location.href);url.searchParams.set('sala',msg.code);history.replaceState(null,'',url);busy(false);if(createRetroAfterJoin){createRetroAfterJoin=false;send({type:'open-retro'});}}
-    if(msg.type==='state'){state=msg.room;receiveState();}
+    if(msg.type==='state'){if(Number.isFinite(msg.serverNow))serverOffset=msg.serverNow-Date.now();state=msg.room;receiveState();boardUI?.setConnected(true);}
     if(msg.type==='error'){createRetroAfterJoin=false;busy(false);boardUI?.onError();toast(msg.message);if(!state){session=null;sessionStorage.removeItem('juntos-session');}}
     if(msg.type==='expired'){session=null;sessionStorage.removeItem('juntos-session');ws.onclose=null;ws.close();landing();toast(msg.message);}
     if(msg.type==='left')goHome();
@@ -79,7 +79,7 @@ function openSocket(){
   };
   ws.onerror=()=>{};
 }
-function updateConnection(connected){const el=$('#connection');if(el){el.textContent=connected?'En línea':'Reconectando…';el.style.color=connected?'':'#bd865d';}}
+function updateConnection(connected){boardUI?.setConnected(connected);const el=$('#connection');if(el){el.textContent=connected?'En línea':'Reconectando…';el.style.color=connected?'':'#bd865d';}}
 function receiveState(){
   if(state.status==='retro'){
     rememberRetro();const key='retro:'+state.retro.id;
@@ -112,7 +112,7 @@ function renderRetro(){
   boardUI?.destroy();
   resetInput();destroyRenderer?.();destroyRenderer=null;clearInterval(demoTimer);screen='retro';
   shell('<main id="retro-page"></main>','retro-mode');
-  boardUI=mountRetro($('#retro-page'),{getState:()=>state,dispatch:dispatchRetro,notify:toast,share:async()=>{if(demo)return toast('La demo no tiene enlace compartido. Crea una sala en línea para guardar una retro.');try{await navigator.clipboard.writeText(retroURL());toast('Enlace privado copiado. Quien lo tenga podrá participar en esta retro.');}catch{toast('Puedes copiar el enlace privado desde la barra del navegador.');}},leave:confirmLeave,showHistory:showRetroHistory});
+  boardUI=mountRetro($('#retro-page'),{getState:()=>state,getNow:()=>Date.now()+(demo?0:serverOffset),dispatch:dispatchRetro,notify:toast,share:async()=>{if(demo)return toast('La demo no tiene enlace compartido. Crea una sala en línea para guardar una retro.');try{await navigator.clipboard.writeText(retroURL());toast('Enlace privado copiado. Quien lo tenga podrá participar en esta retro.');}catch{toast('Puedes copiar el enlace privado desde la barra del navegador.');}},leave:confirmLeave,showHistory:showRetroHistory});
 }
 function showRetroHistory(){
   const entries=storedRetros(),layer=document.createElement('div');layer.className='modal-layer';

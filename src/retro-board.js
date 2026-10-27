@@ -1,13 +1,13 @@
 import { RETRO_COLUMNS, RETRO_PHASES, PHASE_LABELS, exportRetroMarkdown } from '../shared/retro.js';
+import { canAddInRound } from '../shared/retro-round.js';
+import { mountRetroSession } from './retro-session.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function mountRetro(root,{getState,dispatch,notify,share,leave,showHistory}){
+export function mountRetro(root,{getState,getNow=()=>Date.now(),dispatch,notify,share,leave,showHistory}){
   const board=getState().retro;
-  root.innerHTML=`<section class="retro-intro"><div><div class="eyebrow">DE JUGAR JUNTOS A MEJORAR JUNTOS</div><h1 id="retro-title"></h1><p>Hablemos del squad: lo que nos ayudó, lo que nos frenó y qué haremos diferente.</p></div><span class="retro-save" id="retro-save" role="status"></span></section><div class="retro-toolbar"><div class="retro-phases" id="retro-phases"></div><div class="retro-tools"><button class="ghost" data-action="title">Renombrar</button><button class="secondary" data-action="share">Compartir ↗</button><button class="secondary" data-action="export">Descargar notas ↓</button><button class="ghost" data-action="history">Historial</button><button class="ghost" data-action="leave">Salir</button></div></div><div class="retro-ambience"><div><a class="secondary retro-spotify" id="retro-spotify" href="https://open.spotify.com/artist/7CvWoscqVQJvqb0OcBRQO7" target="_blank" rel="noopener noreferrer" aria-label="Escuchar Hola Beats en Spotify, en otra pestaña">♫ Escuchar Hola Beats ↗</a><span>La música de esta retro · inicia la reproducción en Spotify</span></div></div><div class="retro-presence"><div id="retro-people"></div><span id="retro-votes"></span></div><div class="retro-session-note" id="retro-session-note"></div><div class="retro-search"><label for="retro-filter">Buscar en las tarjetas</label><input type="search" id="retro-filter" placeholder="Una idea, una palabra o un compañero…"/></div><div class="retro-columns">${RETRO_COLUMNS.map(c=>`<section class="retro-column ${c.color}"><header><span class="column-icon">${c.icon}</span><div><h2>${c.title}</h2><p>${c.hint}</p></div><span class="column-count" id="count-${esc(c.id)}">0</span></header><form class="retro-composer" data-column="${esc(c.id)}"><label class="sr-only" for="draft-${esc(c.id)}">Nueva idea en ${c.title}</label><textarea id="draft-${esc(c.id)}" maxlength="600" rows="3" placeholder="Escribe una idea por tarjeta…"></textarea><div><small id="limit-${esc(c.id)}">0 / 600</small><button class="primary" type="submit">Añadir ＋</button></div></form><div class="retro-cards" id="cards-${esc(c.id)}"></div></section>`).join('')}</div><p class="retro-privacy">El enlace privado permite leer y participar en esta retro. Comparte el acceso con tu squad. Las notas no se publican en GitHub.</p>`;
+  root.innerHTML=`<section class="retro-intro"><div><div class="eyebrow">DE JUGAR JUNTOS A MEJORAR JUNTOS</div><h1 id="retro-title"></h1><p>Hablemos del squad: lo que nos ayudó, lo que nos frenó y qué haremos diferente.</p></div><span class="retro-save" id="retro-save" role="status"></span></section><div class="retro-toolbar"><div class="retro-phases" id="retro-phases"></div><div class="retro-tools"><button class="ghost" data-action="title">Renombrar</button><button class="secondary" data-action="share">Compartir ↗</button><button class="secondary" data-action="export">Descargar notas ↓</button><button class="ghost" data-action="history">Historial</button><button class="ghost" data-action="leave">Salir</button></div></div><section class="retro-guided" id="retro-guided" aria-label="Cronómetro y música del equipo"></section><div class="retro-presence"><div id="retro-people"></div><span id="retro-votes"></span></div><div class="retro-session-note" id="retro-session-note"></div><div class="retro-search"><label for="retro-filter">Buscar en las tarjetas</label><input type="search" id="retro-filter" placeholder="Una idea, una palabra o un compañero…"/></div><div class="retro-columns">${RETRO_COLUMNS.map(c=>`<section class="retro-column ${c.color}"><header><span class="column-icon">${c.icon}</span><div><h2>${c.title}</h2><p>${c.hint}</p></div><span class="column-count" id="count-${esc(c.id)}">0</span></header><form class="retro-composer" data-column="${esc(c.id)}"><label class="sr-only" for="draft-${esc(c.id)}">Nueva idea en ${c.title}</label><textarea id="draft-${esc(c.id)}" maxlength="600" rows="3" placeholder="Escribe una idea por tarjeta…"></textarea><div><small id="limit-${esc(c.id)}">0 / 600</small><button class="primary" type="submit">Añadir ＋</button></div></form><div class="retro-cards" id="cards-${esc(c.id)}"></div></section>`).join('')}</div><p class="retro-privacy">El enlace privado permite leer y participar en esta retro. Comparte el acceso con tu squad. Las notas no se publican en GitHub.</p>`;
   const $=selector=>root.querySelector(selector);
-  $('#retro-spotify').addEventListener('click',()=>{
-    notify('Hola Beats se abre en Spotify. Inicia la reproducción allí; cada persona escucha por su cuenta.');
-  });
+  let connected=true;
   let currentKey='',pending=new Map();
   const drafts={};
   for(const col of RETRO_COLUMNS){
@@ -20,6 +20,7 @@ export function mountRetro(root,{getState,dispatch,notify,share,leave,showHistor
       dispatch({type:'retro-add',column:col.id,text});
     };
   }
+  const guided=mountRetroSession($('#retro-guided'),{getState,getNow,dispatch,onChange:()=>update()});
   $('#retro-filter').oninput=()=>{currentKey='';update();};
   root.addEventListener('click',e=>{
     const button=e.target.closest('button[data-action]');if(!button)return;
@@ -37,7 +38,7 @@ export function mountRetro(root,{getState,dispatch,notify,share,leave,showHistor
     }
   });
   function update(){
-    const s=getState(),b=s.retro,host=s.hostId===s.selfId,canWrite=['write','action'].includes(b.phase),mine=b.cards.filter(c=>c.voters.includes(s.selfId)).length;
+    const s=getState(),b=s.retro,host=s.hostId===s.selfId,mine=b.cards.filter(c=>c.voters.includes(s.selfId)).length;
     $('#retro-title').textContent=b.title;
     $('#retro-save').textContent=b.persistence==='demo'?'Demo · notas locales':b.saveStatus==='saved'?'✓ Historial guardado':b.saveStatus==='error'?'⚠ No se pudo guardar · reintentando':'◌ Guardando historial…';
     $('#retro-save').classList.toggle('save-error',b.saveStatus==='error');
@@ -47,7 +48,11 @@ export function mountRetro(root,{getState,dispatch,notify,share,leave,showHistor
     $('#retro-votes').textContent=`${Math.max(0,3-mine)} de 3 votos disponibles`;
     const messages={write:'Una idea por tarjeta. Primero escribimos; después escuchamos y votamos.',vote:'Cada persona tiene tres votos. Puedes retirar un voto para cambiar de idea.',action:'Conviertan las ideas en acciones concretas, con una persona responsable.',closed:'Retro cerrada. Pueden consultar el historial o descargar las notas. Quien facilita puede reabrirla.'};
     $('#retro-session-note').textContent=(b.persistence==='demo'?'Esta es una demo local: sus notas no se guardan en el historial. ':'')+messages[b.phase];
+    guided.update();
     for(const col of RETRO_COLUMNS){
+      const canWrite=connected&&canAddInRound(b,col.id,getNow());
+      const current=b.phase==='write'&&b.round?.enabled&&RETRO_COLUMNS[b.round.column]?.id===col.id;
+      $(`#cards-${col.id}`).closest('.retro-column').classList.toggle('round-current',Boolean(current));
       const form=$(`form[data-column="${col.id}"]`),textarea=drafts[col.id],text=pending.get(col.id);
       if(text&&b.cards.some(c=>c.authorId===s.selfId&&c.column===col.id&&c.text===text)){textarea.value='';pending.delete(col.id);textarea.oninput();}
       textarea.disabled=!canWrite||pending.has(col.id);form.querySelector('button').disabled=textarea.disabled;form.classList.toggle('composer-closed',!canWrite);
@@ -71,5 +76,5 @@ export function mountRetro(root,{getState,dispatch,notify,share,leave,showHistor
     layer.querySelector('#delete-note').onclick=()=>{dispatch({type:'retro-delete',id:card.id,version:card.version});layer.remove();};
   }
   function rename(){const layer=modal(`<h2>Nombre de la retro</h2><form><label for="retro-new-title">Título</label><input id="retro-new-title" maxlength="80" value="${esc(getState().retro.title)}" required/><div class="modal-actions"><button type="button" class="ghost" data-close>Cancelar</button><button class="primary">Guardar</button></div></form>`);layer.querySelector('input').focus();layer.querySelector('form').onsubmit=e=>{e.preventDefault();dispatch({type:'retro-title',title:layer.querySelector('input').value});layer.remove();};}
-  return {update,onError(){pending.clear();update();},destroy(){root.innerHTML='';}};
+  return {update,setConnected(value){connected=value;guided.setConnected(value);update();},onError(){pending.clear();guided.onError();update();},destroy(){guided.destroy();root.innerHTML='';}};
 }

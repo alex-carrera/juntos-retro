@@ -43,9 +43,21 @@ Tres columnas: **Lo que funcionó**, **Podemos mejorar** y **Próximos pasos**. 
 - Tres votos por persona; se pueden retirar para cambiar de idea.
 - Acciones con responsable y estado pendiente/hecha.
 - Búsqueda, título editable y descarga de notas en Markdown.
-- Música: únicamente el enlace de **Hola Beats** que eligió el equipo. **Escuchar Hola Beats** abre su [perfil de artista en Spotify](https://open.spotify.com/artist/7CvWoscqVQJvqb0OcBRQO7); cada persona inicia la reproducción allí. El enlace compartido es de artista, no de playlist. No se descargan canciones ni se sincroniza su reproducción con la partida.
+- Tres pistas relajantes incluidas en la web, una por columna: **Dream Culture**, **Meditation Impromptu 01** y **Easy Lemon**, de Kevin MacLeod, bajo [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Los créditos y las fuentes están en el tablero y en `public/audio/CREDITS.md`. No se abre Spotify ni se requiere una cuenta de música.
 - Historial guardado y reapertura desde «Mis retrospectivas guardadas».
 - El enlace privado del tablero permite que el squad vuelva a leer y participar. Guárdenlo en un lugar compartido de confianza.
+
+### Cinco minutos por punto
+
+1. En **Lo que funcionó**, quien facilita pulsa **Empezar 5 minutos**. Se habilita esa columna y empieza la música.
+2. Cada participante toca **Activar música** una vez en su dispositivo. Puede ajustar su volumen o silenciarse sin afectar al equipo.
+3. Al llegar a **00:00**, se bloquean las tarjetas nuevas y se detiene el audio automáticamente. Los borradores se conservan. Es momento de discutir las ideas, sin límite de tiempo.
+4. Quien facilita pulsa **Siguiente punto** y después **Empezar 5 minutos** para **Podemos mejorar**. Repitan para **Próximos pasos**.
+5. Tras discutir el tercer punto, **Pasar a votación** abre los tres votos por persona; luego pueden acordar responsables y cerrar la retro.
+
+Se puede **Pausar** y reanudar con el tiempo restante, pasar a discutir antes del límite o dar **Otros 5 minutos** a la misma columna. El avance entre puntos siempre es manual. El servidor controla el plazo compartido y rechaza tarjetas tardías o de otra columna. Si alguien entra tarde o reconecta, se incorpora al mismo bloque y al punto correspondiente de la pista. La música se detiene al perder la conexión y al salir del tablero. El reloj continúa si alguien se desconecta.
+
+La fecha de vencimiento se guarda en el historial. Al recuperar una retro vencida se pasa a discusión; no se inicia otro punto automáticamente. Las retrospectivas anteriores a esta función conservan la escritura libre hasta que quien facilita inicia su primer bloque. El corte del audio se programa también en el reloj de audio del dispositivo para no depender del refresco de la pestaña.
 
 La lista de enlaces y la identidad de cada participante se recuerdan en ese navegador. Las notas se guardan en la nube. Si cambias de navegador o borras sus datos, usa el enlace privado para volver a entrar; te reconocerá como un participante nuevo si no conservas tu identidad anterior. No existe un directorio público de retrospectivas.
 
@@ -68,7 +80,7 @@ npm run build
 npm start
 ```
 
-Los tests verifican los seis recorridos con dos y siete jugadores, agarre/arrastre, frenado, rescates, puntos de control, turnos, sincronización, edición concurrente, votos, permisos del tablero y una sala real con siete conexiones. Los tests de servidor usan un almacén de memoria para no crear notas de prueba en la nube. El proyecto Supabase y la aplicación publicada se comprueban además por separado.
+Los tests verifican plazos de cinco minutos, pausa/reanudación, permisos del facilitador, rechazo de tarjetas tardías, recuperación de bloques guardados y los seis recorridos con dos y siete jugadores, agarre/arrastre, frenado, rescates, puntos de control, turnos, sincronización, edición concurrente, votos, permisos del tablero y una sala real con siete conexiones. Los tests de servidor usan un almacén de memoria para no crear notas de prueba en la nube. El proyecto Supabase y la aplicación publicada se comprueban además por separado.
 
 ## Publicación
 

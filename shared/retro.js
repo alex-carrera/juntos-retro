@@ -1,3 +1,5 @@
+import { newRound, canAddInRound, changeRetroRound, tickRetroRound } from './retro-round.js';
+
 export const RETRO_COLUMNS = [
   {id:'good',title:'Lo que funcionó',icon:'☀',hint:'¿Qué nos ayudó como equipo?',color:'green'},
   {id:'improve',title:'Podemos mejorar',icon:'↗',hint:'¿Qué nos frenó o hizo falta?',color:'coral'},
@@ -9,19 +11,27 @@ export const PHASE_LABELS = {write:'Escribir',vote:'Votar',action:'Acordar accio
 export function openRetro(room,{id,key,persistence='cloud'}={}){
   if(room.retro){room.status='retro';return room.retro;}
   room.status='retro';
-  room.retro={id,key,title:'Retro Squad · Soporte Tier 3',createdAt:new Date().toISOString(),phase:'write',cards:[],revision:0,persistence,saveStatus:persistence==='demo'?'demo':'pending',savedAt:null};
+  room.retro={id,key,title:'Retro Squad · Soporte Tier 3',createdAt:new Date().toISOString(),phase:'write',round:newRound(),cards:[],revision:0,persistence,saveStatus:persistence==='demo'?'demo':'pending',savedAt:null};
   room.players.forEach(p=>p.input={left:false,right:false,jump:false,grip:false});
   return room.retro;
 }
 
-export function applyRetroAction(room,actor,msg,idFactory=()=>crypto.randomUUID()){
+export function applyRetroAction(room,actor,msg,idFactory=()=>crypto.randomUUID(),now=Date.now()){
   const board=room.retro;if(room.status!=='retro'||!board)throw new Error('El tablero todavía no está abierto.');
   const host=actor.id===room.hostId;
   const text=value=>String(value||'').trim().slice(0,600);
-  if(msg.type==='retro-phase'){
+  tickRetroRound(board,now);
+  if(msg.type==='retro-timer'){
+    if(!host)throw new Error('Solo quien facilita puede controlar el cronómetro.');
+    changeRetroRound(board,msg.command,now);
+  }else if(msg.type==='retro-phase'){
     if(!host)throw new Error('Solo quien facilita puede cambiar la etapa.');
     if(!RETRO_PHASES.includes(msg.phase))throw new Error('Etapa inválida.');
     board.phase=msg.phase;
+    if(board.round){
+      if(msg.phase==='write'&&board.round.mode==='complete')board.round=newRound();
+      else if(msg.phase!=='write'){board.round.mode='complete';board.round.endsAt=null;board.round.remainingMs=0;}
+    }
   }else if(msg.type==='retro-title'){
     if(!host)throw new Error('Solo quien facilita puede cambiar el título.');
     if(!text(msg.title))throw new Error('Escribe un título.');board.title=text(msg.title).slice(0,80);
@@ -30,6 +40,7 @@ export function applyRetroAction(room,actor,msg,idFactory=()=>crypto.randomUUID(
     if(msg.type==='retro-add'){
       if(!['write','action'].includes(board.phase))throw new Error('Ahora estamos votando. Guarda tu idea para la etapa de acciones.');
       if(!RETRO_COLUMNS.some(c=>c.id===msg.column)||!text(msg.text))throw new Error('Escribe una idea y elige una columna.');
+      if(!canAddInRound(board,msg.column,now))throw new Error('Escribe en la columna activa mientras corre el cronómetro. Tu borrador se conserva.');
       if(board.cards.length>=200||board.cards.filter(c=>c.authorId===actor.id).length>=50)throw new Error('Este tablero alcanzó el límite de tarjetas. Exporta las notas antes de continuar.');
       board.cards.push({id:idFactory(),column:msg.column,text:text(msg.text),authorId:actor.id,authorName:actor.name,createdAt:new Date().toISOString(),version:1,voters:[],done:false,assignee:''});
     }else{

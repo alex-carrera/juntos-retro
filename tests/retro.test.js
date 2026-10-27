@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { openRetro, applyRetroAction, exportRetroMarkdown } from '../shared/retro.js';
 import { snapshotRoom } from '../server/retro-storage.js';
 
-function fixture(){const room={hostId:'a',code:'BOARD',players:[{id:'a',name:'Ana',token:'author-secret'},{id:'b',name:'Beto',token:'guest-secret'}]};openRetro(room,{id:randomUUID(),key:'a'.repeat(64)});return room;}
+function fixture(){const room={hostId:'a',code:'BOARD',players:[{id:'a',name:'Ana',token:'author-secret'},{id:'b',name:'Beto',token:'guest-secret'}]};openRetro(room,{id:randomUUID(),key:'a'.repeat(64)});room.retro.round.enabled=false;return room;}
 test('La retro conserva autores, protege edición y evita sobrescribir una versión nueva',()=>{
   const r=fixture(),[a,b]=r.players;applyRetroAction(r,a,{type:'retro-add',column:'good',text:'Nos comunicamos.'});const card=r.retro.cards[0];
   assert.throws(()=>applyRetroAction(r,b,{type:'retro-edit',id:card.id,version:1,text:'Cambio ajeno',column:'good'}),/editar/);
