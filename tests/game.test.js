@@ -46,7 +46,14 @@ test('Equipos de dos y siete recorren los seis niveles con la física real',()=>
   r.players=r.players.slice(0,count);
   for(let level=0;level<LEVELS.length;level++){
     startLevel(r,level);r.players.forEach(p=>p.route=0);
-    for(let frame=0;frame<9000&&r.status==='playing';frame++){for(const p of r.players)updateBot(r,p);stepRoom(r,1/30);}
+    for(let frame=0;frame<9000&&r.status==='playing';frame++){
+      for(const p of r.players)updateBot(r,p);stepRoom(r,1/30);
+      if(level===2)for(const p of r.players){
+        const depthX=Math.min(p.x+p.w,r.box.x+r.box.w)-Math.max(p.x,r.box.x);
+        const depthY=Math.min(p.y+p.h,r.box.y+r.box.h)-Math.max(p.y,r.box.y);
+        assert.ok(depthX<.001||depthY<.001,`Jugador dentro del bloque: ${count} personas, paso ${frame}`);
+      }
+    }
     assert.equal(r.status,level===LEVELS.length-1?'finished':'cleared',`Nivel ${level+1}, ${count} jugadores debe poder completarse`);
   }
  }
@@ -71,4 +78,34 @@ test('La sincronía final exige el dueño de cada botón y tres segundos continu
   steps(r,70);assert.equal(r.unlocked,false);
   place();steps(r,30);assert.equal(r.unlocked,false);r.players[0].x=50;stepRoom(r,1/30);assert.equal(r.progress,0);
   place();steps(r,95);assert.equal(r.unlocked,true);
+});
+
+test('El bloque que retrocede desplaza al jugador que sigue empujando, sin atravesarlo',()=>{
+  const r=room();r.players=r.players.slice(0,2);startLevel(r,2);r.ropeMode=null;
+  r.box.x=720;const p=r.players[0];p.x=r.box.x-p.w;p.input.right=true;
+  for(let i=0;i<240;i++){
+    stepRoom(r,1/120);
+    assert.ok(p.x+p.w<=r.box.x+.001,`Solapamiento al retroceder: paso ${i}`);
+  }
+  assert.ok(r.box.x<720);assert.ok(p.x<688);
+});
+
+test('El bloque que avanza desplaza a quien está delante, incluso con las cuerdas tensas',()=>{
+  const r=room();startLevel(r,2);r.box.x=700;r.pushHold=1;
+  r.players.forEach((p,i)=>{p.x=i<5?630:i===5?768:850;p.input.right=i<5;p.input.left=i===5;});
+  const front=r.players[5];let advanced=false;
+  for(let i=0;i<180;i++){
+    stepRoom(r,1/120);advanced ||=r.box.x>700;
+    for(const p of r.players){const overlap=p.x<r.box.x+r.box.w-.001&&p.x+p.w>r.box.x+.001&&p.y<r.box.y+r.box.h-.001&&p.y+p.h>r.box.y+.001;assert.ok(!overlap,`Jugador ${p.id} dentro del bloque, paso ${i}`);}
+    assert.ok(front.x>=r.box.x+r.box.w-.001);
+  }
+  assert.ok(advanced);
+});
+
+test('Un personaje de pie sobre el bloque viaja con él sin perder el apoyo',()=>{
+  const r=room();r.players=r.players.slice(0,2);startLevel(r,2);r.ropeMode=null;r.box.x=720;
+  const p=r.players[0];p.x=735;p.y=r.box.y-p.h;p.input.grip=true;
+  const offset=p.x-r.box.x;
+  steps(r,30);
+  assert.ok(r.box.x<720);assert.ok(Math.abs(p.x-r.box.x-offset)<.001);assert.equal(p.y+p.h,r.box.y);assert.equal(p.grounded,true);
 });

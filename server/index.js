@@ -20,7 +20,7 @@ if(!production) {
 }
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.woff2':'font/woff2','.json':'application/json','.mp3':'audio/mpeg'};
 const server=http.createServer(async(req,res)=>{
-  if(req.url==='/health') {res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,version:'rope-physics-v4'}));return;}
+  if(req.url==='/health') {res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,version:'block-collision-v5'}));return;}
   if(vite) {vite.middlewares(req,res);return;}
   try {
     const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);

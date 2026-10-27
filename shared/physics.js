@@ -2,6 +2,22 @@ export const GRAVITY=1350;
 export const PHYSICS_STEP=1/120;
 const overlapX=(a,b)=>a.x+a.w>b.x+.01&&a.x<b.x+b.w-.01;
 
+export function moveSolidHorizontally(solid,dx,players,obstacles,width){
+  if(!dx)return;
+  const oldX=solid.x,oldRight=oldX+solid.w;
+  const otherSolids=obstacles.filter(o=>o!==solid);
+  solid.x+=dx;
+  for(const p of players){
+    const riding=p.x+p.w>oldX+.01&&p.x<oldRight-.01&&Math.abs(p.y+p.h-solid.y)<.15;
+    if(riding){moveBody(p,dx,0,otherSolids,width);continue;}
+    if(p.y+p.h<=solid.y+.01||p.y>=solid.y+solid.h-.01)continue;
+    // Sweep the moving face before player movement or rope corrections. Once a
+    // solid overlaps a body, a crossing-only collision check cannot stop it.
+    if(dx<0&&p.x<oldX&&p.x+p.w>solid.x)moveBody(p,solid.x-p.x-p.w,0,otherSolids,width);
+    if(dx>0&&p.x+p.w>oldRight&&p.x<solid.x+solid.w)moveBody(p,solid.x+solid.w-p.x,0,otherSolids,width);
+  }
+}
+
 export function moveBody(p,dx,dy,obstacles,width){
   const oldX=p.x,oldY=p.y;
   let x=Math.max(20,Math.min(width-p.w-20,p.x+dx));

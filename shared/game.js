@@ -1,5 +1,5 @@
 import { buildRopeGeometry } from './rope-path.js';
-import { GRAVITY, PHYSICS_STEP, moveBody, refreshGrounding, solvePlayerContacts, approach } from './physics.js';
+import { GRAVITY, PHYSICS_STEP, moveBody, moveSolidHorizontally, refreshGrounding, solvePlayerContacts, approach } from './physics.js';
 export const WIDTH = 1280;
 export const HEIGHT = 680;
 export const FLOOR = 594;
@@ -82,8 +82,10 @@ function stepRoomSlice(room, dt) {
     const box=room.box;
     room.pushers = room.players.filter(p=>p.input.right && !p.input.left && p.x+p.w<=box.x+10 && p.x+p.w>box.x-150 && Math.abs(p.y+p.h-FLOOR)<10).length;
     room.pushHold=room.pushers>=room.requiredPushers?room.pushHold+dt:0;
-    if(room.pushHold>=.35)box.x=Math.min(925,box.x+72*dt);
-    else if(room.pushers<room.requiredPushers)box.x=Math.max(610,box.x-25*dt);
+    let nextX=box.x;
+    if(room.pushHold>=.35)nextX=Math.min(925,box.x+72*dt);
+    else if(room.pushers<room.requiredPushers)nextX=Math.max(610,box.x-25*dt);
+    moveSolidHorizontally(box,nextX-box.x,room.players,solids(room),WIDTH);
     room.progress = (box.x-610)/315;
     if(box.x>=925) { room.unlocked=true; room.progress=1; }
   }

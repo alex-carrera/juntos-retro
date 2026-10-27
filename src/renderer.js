@@ -7,6 +7,9 @@ export function createRenderer(parent,getState) {
     create() {this.pen=this.add.graphics();this.labels=new Map();this.decor=[];this.positions=new Map();}
     update(time,delta) {
       const room=getState();if(!room?.players)return;
+      const restarted=this.lastElapsed!==undefined&&room.elapsed<this.lastElapsed;
+      this.lastElapsed=room.elapsed;
+      const alpha=1-Math.exp(-delta/38);
       const g=this.pen;g.clear();
       const night=[2,5].includes(room.level);
       g.fillStyle(night?0xe3e8ef:0xeaf0e3);g.fillRect(0,0,WIDTH,HEIGHT);
@@ -73,14 +76,18 @@ export function createRenderer(parent,getState) {
       if(room.level===2){
         g.lineStyle(2,0x879b7b,.65);g.strokeRoundedRect(922,FLOOR-73,76,73,4);
         g.fillStyle(0x97af7d,.15);g.fillRoundedRect(923,FLOOR-72,74,72,4);
-        const b=room.box;g.fillStyle(0xa9a789);g.fillRoundedRect(b.x,b.y+5,b.w,b.h-5,5);g.fillStyle(0xd7c9a5);g.fillRoundedRect(b.x,b.y,b.w,b.h-7,5);
+        // Use the same interpolation as the players so a touching body does not
+        // appear inside a block rendered one server update ahead of it.
+        if(this.boxX===undefined||restarted||Math.abs(this.boxX-room.box.x)>200)this.boxX=room.box.x;
+        this.boxX+=(room.box.x-this.boxX)*alpha;
+        const b={...room.box,x:this.boxX};g.fillStyle(0xa9a789);g.fillRoundedRect(b.x,b.y+5,b.w,b.h-5,5);g.fillStyle(0xd7c9a5);g.fillRoundedRect(b.x,b.y,b.w,b.h-7,5);
         g.lineStyle(3,0xb6a785);g.strokeRoundedRect(b.x+8,b.y+8,b.w-16,b.h-23,3);g.lineBetween(b.x+10,b.y+10,b.x+b.w-10,b.y+b.h-17);g.lineBetween(b.x+b.w-10,b.y+10,b.x+10,b.y+b.h-17);
       }
       const known=new Set();
       for(const p of room.players){
         let pos=this.positions.get(p.id);
-        if(!pos||Math.abs(pos.x-p.x)>200||Math.abs(pos.y-p.y)>200||pos.respawnUntil!==p.respawnUntil)pos={x:p.x,y:p.y,respawnUntil:p.respawnUntil};
-        const alpha=1-Math.exp(-delta/38);pos.x+=(p.x-pos.x)*alpha;pos.y+=(p.y-pos.y)*alpha;
+        if(!pos||restarted||Math.abs(pos.x-p.x)>200||Math.abs(pos.y-p.y)>200||pos.respawnUntil!==p.respawnUntil)pos={x:p.x,y:p.y,respawnUntil:p.respawnUntil};
+        pos.x+=(p.x-pos.x)*alpha;pos.y+=(p.y-pos.y)*alpha;
         pos.displayY=pos.y+(p.grounded&&Math.abs(p.vx)>5?Math.sin(time/85)*2:0);this.positions.set(p.id,pos);
       }
       for(const link of room.links||[]){
