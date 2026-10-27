@@ -42,6 +42,7 @@ Tres columnas: **Lo que funcionó**, **Podemos mejorar** y **Próximos pasos**. 
 - Acciones con responsable y estado pendiente/hecha.
 - Búsqueda, título editable y descarga de notas en Markdown.
 - Música ambiental relajante con botón de reproducción/pausa y volumen individual. Se genera en el navegador con síntesis propia, sin grabaciones ni pistas de terceros; empieza al tocar «Música relajante», se pausa al ocultar la pestaña y se detiene al salir del tablero.
+- Botón **Lofi en Spotify**: abre la playlist oficial [StreamBeats – Lofi](https://open.spotify.com/playlist/4kAqBBEZQsBIXMIJl6u8tO) en otra pestaña y pausa el ambiente local. Cada persona inicia su reproducción en Spotify. Es un enlace externo: no se incluyen pistas de Spotify en el juego ni se sincroniza su reproducción. StreamBeats conserva sus derechos y ofrece una [licencia gratuita para determinados usos](https://www.streambeats.com/licensing/); no se presenta como música de dominio público.
 - Historial guardado y reapertura desde «Mis retrospectivas guardadas».
 - El enlace privado del tablero permite que el squad vuelva a leer y participar. Guárdenlo en un lugar compartido de confianza.
 
