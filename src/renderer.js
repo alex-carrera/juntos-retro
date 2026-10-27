@@ -115,7 +115,8 @@ export function createRenderer(parent,getState) {
       if(!this.exitLabel)this.exitLabel=this.add.text(1184,FLOOR-150,'SALIDA',{fontFamily:'DM Sans',fontSize:'10px',color:'#849476',letterSpacing:3}).setOrigin(.5);
       if(!this.guide)this.guide=this.add.text(WIDTH/2,60,'',{fontFamily:'Outfit, sans-serif',fontSize:'16px',color:'#93a086'}).setOrigin(.5);
       const relayName=room.players.find(p=>p.id===room.relayOrder?.[room.relayStep])?.name||'';
-      this.guide.setText(room.unlocked?'Puerta abierta. ¡Nos vemos al otro lado!':room.level===0?'La cuerda tira de tu compañero. Avancen juntos.':room.level===1?'La cinta arrastra. E o Agarrar permite frenar.':room.level===2?`Hacen falta ${room.requiredPushers} empujando contra las ráfagas.`:room.level===3?'Rescate: apóyate y mantén Agarrar + Salto (E + Espacio).':room.level===4?`Turno de ${relayName} · ${room.signalOpen?'VERDE: entra y frena':'espera fuera del botón'}`:'Una cadena, un botón por persona. Sostengan tres segundos.');
+      const hanging=room.links?.some(l=>l.taut&&l.points?.length>2&&room.players.some(p=>(p.id===l.a||p.id===l.b)&&!p.grounded));
+      this.guide.setText(hanging?'Cuerda apoyada: mantén Saltar + dirección hacia la plataforma.':room.unlocked?'Puerta abierta. ¡Nos vemos al otro lado!':room.level===0?'La cuerda tira de tu compañero. Avancen juntos.':room.level===1?'La cinta arrastra. E o Agarrar permite frenar.':room.level===2?`Hacen falta ${room.requiredPushers} empujando contra las ráfagas.`:room.level===3?'Rescate: apóyate y mantén Agarrar + Salto (E + Espacio).':room.level===4?`Turno de ${relayName} · ${room.signalOpen?'VERDE: entra y frena':'espera fuera del botón'}`:'Una cadena, un botón por persona. Sostengan tres segundos.');
     }
     character(g,p,x,y,time,isMe){
       const c=hex(p.color),bounce=p.grounded&&Math.abs(p.vx)>5?Math.sin(time/85)*2:0;y+=bounce;

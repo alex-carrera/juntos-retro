@@ -21,6 +21,7 @@ Quien facilita también puede abrir el tablero desde la sala o el botón «Retro
 - Flechas o A/D: moverse.
 - Espacio, W o flecha arriba: saltar.
 - **E, mantenida:** agarrar a una persona cercana y frenar. **E + Espacio, mantenidos:** recoger cuerda gradualmente para izar a un compañero colgado, apoyándote en suelo o en una cuerda que rodea una plataforma. En celular, mantén **Agarrar + Saltar**. Suelta E para liberar un agarre manual; las cuerdas permanentes siguen uniendo al equipo.
+- Si la cuerda queda apoyada sobre una plataforma y ambos están colgados, mantén **Salto + dirección hacia la plataforma** para trepar, incluso si están a la misma altura. Aparece una pista en el escenario. Esto necesita el apoyo real de la cuerda en el terreno; saltar en el aire libre no crea un anclaje.
 - En celular aparecen botones de movimiento, salto y **Agarrar**. Usa orientación horizontal para ver mejor el escenario.
 - Coordinen por el audio de su llamada; no hay voz ni chat en el juego.
 

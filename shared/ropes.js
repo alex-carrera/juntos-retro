@@ -7,12 +7,16 @@ export function ropeLinks(room,dt=1/120,geometry=null){
     if(!a||!b||links.some(l=>(l.a===a.id&&l.b===b.id)||(l.a===b.id&&l.b===a.id)))return;
     const previous=room.links?.find(l=>(l.a===a.id&&l.b===b.id)||(l.a===b.id&&l.b===a.id));
     const upper=a.y<b.y?a:b,lower=upper===a?b:a;
-    const wrapped=previous?.points?.length>2&&previous.taut;
-    const rescue=!lower.grounded&&(upper.input.grip&&upper.input.jump&&upper.grounded||wrapped&&(a.input.grip&&a.input.jump||b.input.grip&&b.input.jump))&&(lower.y>upper.y+18||previous?.rescue);
+    const wrapped=previous?.points?.length>2&&(previous.taut||previous.rescue);
+    const climbing=wrapped&&(!a.grounded&&a.input.jump||!b.grounded&&b.input.jump);
+    const rescue=climbing||!lower.grounded&&upper.input.grip&&upper.input.jump&&upper.grounded&&(lower.y>upper.y+18||previous?.rescue);
     // Reeling does work gradually; gripping in midair never creates an anchor.
-    const target=rescue?24:upper.input.grip&&previous?.rescue?previous.length:restLength;
+    let span=0;
+    for(let i=2;i<(previous?.points?.length||0)-1;i++)span+=Math.hypot(previous.points[i].x-previous.points[i-1].x,previous.points[i].y-previous.points[i-1].y);
+    // A winch cannot shorten the section spanning fixed terrain corners.
+    const target=rescue?Math.min(restLength,Math.max(24,span)):upper.input.grip&&previous?.rescue?previous.length:restLength;
     const length=approach(previous?.length??restLength,target,(target<restLength?38:70)*dt);
-    const anchorA=approach(previous?.anchorA??20,rescue&&upper===a?-12:20,45*dt),anchorB=approach(previous?.anchorB??20,rescue&&upper===b?-12:20,45*dt);
+    const anchorA=approach(previous?.anchorA??20,rescue&&upper===a&&upper.grounded?-12:20,45*dt),anchorB=approach(previous?.anchorB??20,rescue&&upper===b&&upper.grounded?-12:20,45*dt);
     links.push({a:a.id,b:b.id,anchorA,anchorB,anchorRateA:(anchorA-(previous?.anchorA??20))/dt,anchorRateB:(anchorB-(previous?.anchorB??20))/dt,restLength,length,lengthRate:(length-(previous?.length??restLength))/dt,manual,rescue:Boolean(rescue),tension:0});
   };
   if(room.ropeMode==='chain')for(let i=1;i<players.length;i++)add(players[i-1],players[i],room.ropeLength);

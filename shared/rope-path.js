@@ -11,7 +11,9 @@ export const visible=(a,b,geometry)=>!geometry.rects.some(r=>cuts(a,b,r));
 
 export function buildRopeGeometry(rects){
   // Clearance for the non-rotating character body while reeling around a ledge.
-  rects=rects.map(r=>({x:r.x-16,y:r.y-20,w:r.w+32,h:r.h+40}));
+  // The anchor is 20 px below the head and the feet are 42 px below it.
+  // Leave enough clearance for the feet to pass the ledge when climbing.
+  rects=rects.map(r=>({x:r.x-16,y:r.y-22,w:r.w+32,h:r.h+44}));
   const geometry={rects,nodes:[],edges:[]};
   for(const r of rects)for(const [x,y]of[[r.x-.4,r.y-.4],[r.x+r.w+.4,r.y-.4],[r.x-.4,r.y+r.h+.4],[r.x+r.w+.4,r.y+r.h+.4]]){
     if(x<0||x>1280||y>900)continue;

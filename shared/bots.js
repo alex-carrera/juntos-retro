@@ -55,7 +55,7 @@ export function updateBot(room,p){
   p.input.left=p.x>target+5;p.input.right=p.x<target-5;
   if(room.level===2&&!room.unlocked&&p.x+32>room.box.x-185)p.input.right=true;
   if(p.grounded&&Math.abs(p.x-target)<9)p.input.grip=true;
-  if(!p.grounded&&!room.stars.every(s=>s.collected)&&(room.links||[]).some(l=>(l.a===p.id||l.b===p.id)&&l.taut&&l.points?.length>2)){p.input.grip=true;reeling=true;}
+  if(!p.grounded&&(!room.stars.every(s=>s.collected)||room.unlocked)&&(room.links||[]).some(l=>(l.a===p.id||l.b===p.id)&&l.taut&&l.points?.length>2)){p.input.grip=true;reeling=true;}
   // The demo braces deliberately without accidentally grabbing an unrelated teammate.
   if(p.input.grip)p.gripHeld=true;
   p.input.jump=reeling||jump&&!p.jumpHeld;

@@ -23,8 +23,8 @@ test('Un personaje cae al vacío y la cuerda de rescate se tensa al frenar arrib
 
 test('Dos personajes en el aire caen con la misma gravedad incluso al agarrar',()=>{
   const r=fixture(3),[a,b]=r.players;r.ropeLength=130;
-  Object.assign(a,{x:400,y:100,vx:100,vy:0,grounded:false,input:{grip:true}});
-  Object.assign(b,{x:450,y:220,vx:-100,vy:260,grounded:false,input:{grip:true}});
+  Object.assign(a,{x:400,y:100,vx:100,vy:0,grounded:false,input:{grip:true,jump:true}});
+  Object.assign(b,{x:450,y:220,vx:-100,vy:260,grounded:false,input:{grip:true,jump:true}});
   const initialMomentum=a.vy+b.vy;
   for(let i=0;i<40;i++){
     for(const p of r.players){p.vy+=1350/120;p.x+=p.vx/120;p.y+=p.vy/120;}
@@ -75,4 +75,36 @@ test('Agarrar sin Salto frena pero no recoge cuerda automáticamente',()=>{
   Object.assign(b,{x:350,y:570,grounded:false,input:{}});
   for(let i=0;i<20;i++)stepRoom(r,1/120);
   assert.equal(r.links[0].rescue,false);assert.equal(r.links[0].length,150);
+});
+
+test('Una pareja colgada a la misma altura a ambos lados de una plataforma puede trepar',()=>{
+  for(const grip of [false,true]){
+    const r=fixture(),[a,b]=r.players;
+    Object.assign(a,{x:308,y:482,grounded:false,input:{}});
+    Object.assign(b,{x:465,y:482,grounded:false,input:{}});
+    for(let i=0;i<240;i++)stepRoom(r,1/120);
+    assert.ok(r.links[0].taut);assert.ok(r.links[0].points.length>2);
+    assert.ok(!a.grounded&&!b.grounded);assert.ok(Math.abs(a.y-b.y)<.01);
+    a.input={right:true,jump:true,grip};b.input={left:true};
+    let landed=false,climbed=false;
+    for(let i=0;i<360;i++){
+      stepRoom(r,1/120);
+      climbed ||=r.links.some(l=>l.rescue);
+      landed ||=r.players.some(p=>p.grounded&&Math.abs(p.y+p.h-514)<.2);
+      for(const p of r.players){assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y));assert.ok(!(p.x<465-.001&&p.x+p.w>340+.001&&p.y<532-.001&&p.y+p.h>514+.001),'Trepar no atraviesa la plataforma');}
+    }
+    assert.ok(climbed);assert.ok(landed,'Saltar hacia la plataforma debe sacar a la pareja del atasco');
+  }
+});
+
+test('Recoger cuerda sobre una plataforma no comprime el tramo entre sus bordes ni lanza a los jugadores',()=>{
+  const r=fixture(),[a,b]=r.players;
+  Object.assign(a,{x:308,y:482,grounded:false,input:{}});Object.assign(b,{x:465,y:482,grounded:false,input:{}});
+  for(let i=0;i<240;i++)stepRoom(r,1/120);
+  a.input={jump:true};b.input={jump:true};
+  for(let i=0;i<600;i++){
+    stepRoom(r,1/120);
+    assert.ok(r.links[0].length>=157.8-.001);
+    for(const p of r.players)assert.ok(Math.hypot(p.vx,p.vy)<300);
+  }
 });
