@@ -1,46 +1,68 @@
-export function ropeLinks(room){
-  const links=[],players=room.players,mode=room.ropeMode;
-  const add=(a,b,length,manual=false)=>{
-    if(!a||!b)return;
+import { ropePath, visible } from './rope-path.js';
+import { approach } from './physics.js';
+
+export function ropeLinks(room,dt=1/120,geometry=null){
+  const links=[],players=room.players;
+  const add=(a,b,restLength,manual=false)=>{
+    if(!a||!b||links.some(l=>(l.a===a.id&&l.b===b.id)||(l.a===b.id&&l.b===a.id)))return;
     const previous=room.links?.find(l=>(l.a===a.id&&l.b===b.id)||(l.a===b.id&&l.b===a.id));
-    const rescue=(previous?.rescue&&(a.input.grip||b.input.grip))||(a.input.grip&&(a.grounded||a.wasGrounded)&&!b.grounded&&b.y>a.y+60)||(b.input.grip&&(b.grounded||b.wasGrounded)&&!a.grounded&&a.y>b.y+60);
-    if(rescue)length=Math.max(45,length-110);
-    if(a.id!==b.id&&!links.some(l=>(l.a===a.id&&l.b===b.id)||(l.a===b.id&&l.b===a.id)))links.push({a:a.id,b:b.id,length,manual,rescue:Boolean(rescue)});
+    const upper=a.y<b.y?a:b,lower=upper===a?b:a;
+    const wrapped=previous?.points?.length>2&&previous.taut;
+    const rescue=!lower.grounded&&(upper.input.grip&&upper.input.jump&&upper.grounded||wrapped&&(a.input.grip&&a.input.jump||b.input.grip&&b.input.jump))&&(lower.y>upper.y+18||previous?.rescue);
+    // Reeling does work gradually; gripping in midair never creates an anchor.
+    const target=rescue?24:upper.input.grip&&previous?.rescue?previous.length:restLength;
+    const length=approach(previous?.length??restLength,target,(target<restLength?38:70)*dt);
+    const anchorA=approach(previous?.anchorA??20,rescue&&upper===a?-12:20,45*dt),anchorB=approach(previous?.anchorB??20,rescue&&upper===b?-12:20,45*dt);
+    links.push({a:a.id,b:b.id,anchorA,anchorB,anchorRateA:(anchorA-(previous?.anchorA??20))/dt,anchorRateB:(anchorB-(previous?.anchorB??20))/dt,restLength,length,lengthRate:(length-(previous?.length??restLength))/dt,manual,rescue:Boolean(rescue),tension:0});
   };
-  if(mode==='chain')for(let i=1;i<players.length;i++)add(players[i-1],players[i],room.ropeLength);
-  if(mode==='pairs'){
+  if(room.ropeMode==='chain')for(let i=1;i<players.length;i++)add(players[i-1],players[i],room.ropeLength);
+  if(room.ropeMode==='pairs'){
     for(let i=1;i<players.length;i+=2)add(players[i-1],players[i],room.ropeLength);
     if(players.length>2&&players.length%2)add(players.at(-2),players.at(-1),room.ropeLength);
   }
   for(const p of players){
-    p.bracing=Boolean(p.input.grip);
+    p.bracing=Boolean(p.input.grip&&p.grounded);
     if(!p.input.grip){p.grabbed=null;p.gripHeld=false;continue;}
-    if(!p.gripHeld&&!p.grabbed){const near=players.filter(q=>q!==p).map(q=>({p:q,d:Math.hypot(q.x-p.x,q.y-p.y)})).filter(q=>q.d<100).sort((a,b)=>a.d-b.d)[0];if(near)p.grabbed=near.p.id;}
+    if(!p.gripHeld&&!p.grabbed){const near=players.filter(q=>q!==p).map(q=>({p:q,d:Math.hypot(q.x-p.x,q.y-p.y)})).filter(q=>q.d<90&&(!geometry||visible({x:p.x+16,y:p.y+20},{x:q.p.x+16,y:q.p.y+20},geometry))).sort((a,b)=>a.d-b.d)[0];if(near)p.grabbed=near.p.id;}
     p.gripHeld=true;
-    const other=players.find(q=>q.id===p.grabbed);if(other)add(p,other,95,true);
+    const other=players.find(q=>q.id===p.grabbed);if(other)add(p,other,85,true);
   }
+  for(const p of players)p.ropeHandY=20;
+  for(const l of links){const a=players.find(p=>p.id===l.a),b=players.find(p=>p.id===l.b);a.ropeHandY=Math.min(a.ropeHandY,l.anchorA);b.ropeHandY=Math.min(b.ropeHandY,l.anchorB);}
   return links;
 }
 
-export function solveRopes(room,dt,move){
-  room.links=ropeLinks(room);
-  for(let iteration=0;iteration<3;iteration++)for(const link of room.links){
-    const a=room.players.find(p=>p.id===link.a),b=room.players.find(p=>p.id===link.b);
-    if(iteration===0&&link.rescue){const upper=a.y<b.y?a:b,lower=upper===a?b:a;if(upper.input.grip&&lower.y>upper.y+35){lower.vy=Math.min(lower.vy,-210);lower.dragVX+=(upper.x-lower.x)*dt*.3;}}
-    const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;
-    link.tension=Math.max(0,d-link.length);
-    if(d<=link.length)continue;
-    const nx=dx/d,ny=dy/d;
-    const weight=p=>p.grounded?(p.input.grip?.08:.28):1;
-    const wa=weight(a),wb=weight(b),sum=wa+wb;
-    if(iteration===0){
-      const impulse=Math.min(750,(d-link.length)*13)*dt;
-      a.dragVX=Math.max(-240,Math.min(240,(a.dragVX||0)+nx*impulse*wa/sum));b.dragVX=Math.max(-240,Math.min(240,(b.dragVX||0)-nx*impulse*wb/sum));
+export function solveRopes(room,dt,move,contacts=()=>{},geometry=null){
+  room.links=ropeLinks(room,dt,geometry);
+  const players=new Map(room.players.map(p=>[p.id,p]));
+  for(let iteration=0;iteration<12;iteration++){
+    const links=iteration%2?[...room.links].reverse():room.links;
+    for(const link of links){
+      const a=players.get(link.a),b=players.get(link.b);
+      const points=ropePath({x:a.x+16,y:a.y+link.anchorA},{x:b.x+16,y:b.y+link.anchorB},geometry);
+      let d=0;for(let i=1;i<points.length;i++)d+=Math.hypot(points[i].x-points[i-1].x,points[i].y-points[i-1].y);
+      if(d<.0001)continue;
+      const first=points[1],last=points.at(-2),ad=Math.hypot(first.x-points[0].x,first.y-points[0].y)||1,bd=Math.hypot(last.x-points.at(-1).x,last.y-points.at(-1).y)||1;
+      const anx=(first.x-points[0].x)/ad,any=(first.y-points[0].y)/ad,bnx=(last.x-points.at(-1).x)/bd,bny=(last.y-points.at(-1).y)/bd;
+      const ay=a.grounded&&any>0?0:any,by=b.grounded&&bny>0?0:bny;
+      const ax=anx*(a.grounded&&a.input.grip?.08:1),bx=bnx*(b.grounded&&b.input.grip?.08:1);
+      const mass=anx*ax+any*ay+bnx*bx+bny*by;
+      if(mass<.00001)continue;
+      const stretch=d-link.length;
+      link.tension=Math.max(link.tension,stretch);
+      if(stretch>.05){const correction=(stretch-.05)*.9/mass;move(a,ax*correction,ay*correction);move(b,bx*correction,by*correction);}
+      if(stretch>=-.3){
+        const outward=-(a.vx*anx+(a.vy+link.anchorRateA)*any+b.vx*bnx+(b.vy+link.anchorRateB)*bny);
+        // Remove separating velocity, preserving tangential swing and airborne momentum.
+        if(outward>link.lengthRate){const impulse=(outward-link.lengthRate)/mass;a.vx+=ax*impulse;a.vy+=ay*impulse;b.vx+=bx*impulse;b.vy+=by*impulse;}
+      }
     }
-    // A short elastic section makes a fall tug the teammate before the line holds.
-    const correction=Math.max(0,d-link.length-24)*.72;
-    if(correction){move(a,nx*correction*wa/sum,ny*correction*wa/sum);move(b,-nx*correction*wb/sum,-ny*correction*wb/sum);}
-    if(correction){if(a.y>b.y&&a.vy>0)a.vy*=.25;if(b.y>a.y&&b.vy>0)b.vy*=.25;}
+    contacts();
+  }
+  for(const link of room.links){
+    const a=players.get(link.a),b=players.get(link.b);link.points=ropePath({x:a.x+16,y:a.y+link.anchorA},{x:b.x+16,y:b.y+link.anchorB},geometry);
+    let distance=0;for(let i=1;i<link.points.length;i++)distance+=Math.hypot(link.points[i].x-link.points[i-1].x,link.points[i].y-link.points[i-1].y);
+    link.taut=distance>link.length-.7;
   }
 }
 

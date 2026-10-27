@@ -77,17 +77,28 @@ export function createRenderer(parent,getState) {
         g.lineStyle(3,0xb6a785);g.strokeRoundedRect(b.x+8,b.y+8,b.w-16,b.h-23,3);g.lineBetween(b.x+10,b.y+10,b.x+b.w-10,b.y+b.h-17);g.lineBetween(b.x+b.w-10,b.y+10,b.x+10,b.y+b.h-17);
       }
       const known=new Set();
+      for(const p of room.players){
+        let pos=this.positions.get(p.id);
+        if(!pos||Math.abs(pos.x-p.x)>200||Math.abs(pos.y-p.y)>200||pos.respawnUntil!==p.respawnUntil)pos={x:p.x,y:p.y,respawnUntil:p.respawnUntil};
+        const alpha=1-Math.exp(-delta/38);pos.x+=(p.x-pos.x)*alpha;pos.y+=(p.y-pos.y)*alpha;
+        pos.displayY=pos.y+(p.grounded&&Math.abs(p.vx)>5?Math.sin(time/85)*2:0);this.positions.set(p.id,pos);
+      }
       for(const link of room.links||[]){
         const a=room.players.find(p=>p.id===link.a),b=room.players.find(p=>p.id===link.b);if(!a||!b)continue;
-        const x1=a.x+16,y1=a.y+25,x2=b.x+16,y2=b.y+25,d=Math.hypot(x2-x1,y2-y1),sag=Math.max(0,Math.min(22,(link.length-d)*.13));
-        g.lineStyle(link.manual?3:2.5,link.tension>14?0xdd8159:link.manual?0x789faa:0xb8a072,.95);
-        g.beginPath();g.moveTo(x1,y1);g.lineTo((x1+x2)/2,(y1+y2)/2+sag);g.lineTo(x2,y2);g.strokePath();
+        const av=this.positions.get(a.id),bv=this.positions.get(b.id);
+        const start={x:av.x+16,y:av.displayY+(link.anchorA??20)},end={x:bv.x+16,y:bv.displayY+(link.anchorB??20)};
+        const points=[start,...(link.points||[]).slice(1,-1),end];
+        const d=Math.hypot(end.x-start.x,end.y-start.y),sag=link.taut||points.length>2?0:Math.max(0,Math.min(24,(link.length-d)*.18));
+        g.lineStyle(link.rescue?3.5:link.manual?3:2.5,link.rescue?0x789faa:link.taut?0xdd8159:0xb8a072,.95);
+        g.beginPath();g.moveTo(start.x,start.y);
+        if(sag)g.lineTo((start.x+end.x)/2,(start.y+end.y)/2+sag);
+        for(const point of points.slice(1))g.lineTo(point.x,point.y);
+        g.strokePath();
+        for(const point of points.slice(1,-1)){g.fillStyle(0xd1ad78);g.fillCircle(point.x,point.y,2);}
       }
       for(const p of [...room.players].sort((a,b)=>a.y-b.y)){
         known.add(p.id);
-        let pos=this.positions.get(p.id);
-        if(!pos||Math.abs(pos.x-p.x)>200||Math.abs(pos.y-p.y)>200)pos={x:p.x,y:p.y};
-        const alpha=1-Math.exp(-delta/38);pos.x+=(p.x-pos.x)*alpha;pos.y+=(p.y-pos.y)*alpha;this.positions.set(p.id,pos);
+        const pos=this.positions.get(p.id);
         this.character(g,p,pos.x,pos.y,time,room.selfId===p.id);
         let label=this.labels.get(p.id);
         if(!label){label=this.add.text(0,0,'',{fontFamily:'DM Sans, sans-serif',fontSize:'12px',color:'#53634b',backgroundColor:'#edf1e4',padding:{x:5,y:3}}).setOrigin(.5,1);this.labels.set(p.id,label);}
@@ -97,7 +108,7 @@ export function createRenderer(parent,getState) {
       if(!this.exitLabel)this.exitLabel=this.add.text(1184,FLOOR-150,'SALIDA',{fontFamily:'DM Sans',fontSize:'10px',color:'#849476',letterSpacing:3}).setOrigin(.5);
       if(!this.guide)this.guide=this.add.text(WIDTH/2,60,'',{fontFamily:'Outfit, sans-serif',fontSize:'16px',color:'#93a086'}).setOrigin(.5);
       const relayName=room.players.find(p=>p.id===room.relayOrder?.[room.relayStep])?.name||'';
-      this.guide.setText(room.unlocked?'Puerta abierta. ¡Nos vemos al otro lado!':room.level===0?'La cuerda tira de tu compañero. Avancen juntos.':room.level===1?'La cinta arrastra. E o Agarrar permite frenar.':room.level===2?`Hacen falta ${room.requiredPushers} empujando contra las ráfagas.`:room.level===3?'Si alguien cae, frenen y tiren de la cuerda para rescatarlo.':room.level===4?`Turno de ${relayName} · ${room.signalOpen?'VERDE: entra y frena':'espera fuera del botón'}`:'Una cadena, siete botones. Frenen y sostengan dos segundos.');
+      this.guide.setText(room.unlocked?'Puerta abierta. ¡Nos vemos al otro lado!':room.level===0?'La cuerda tira de tu compañero. Avancen juntos.':room.level===1?'La cinta arrastra. E o Agarrar permite frenar.':room.level===2?`Hacen falta ${room.requiredPushers} empujando contra las ráfagas.`:room.level===3?'Rescate: apóyate y mantén Agarrar + Salto (E + Espacio).':room.level===4?`Turno de ${relayName} · ${room.signalOpen?'VERDE: entra y frena':'espera fuera del botón'}`:'Una cadena, un botón por persona. Sostengan tres segundos.');
     }
     character(g,p,x,y,time,isMe){
       const c=hex(p.color),bounce=p.grounded&&Math.abs(p.vx)>5?Math.sin(time/85)*2:0;y+=bounce;
@@ -108,7 +119,8 @@ export function createRenderer(parent,getState) {
       g.fillRoundedRect(x,y,32,37,11);
       const walk=p.grounded?Math.sin(time/85)*Math.min(3,Math.abs(p.vx)/60):0;
       g.fillRoundedRect(x+4,y+31+walk,9,11,4);g.fillRoundedRect(x+20,y+31-walk,9,11,4);
-      g.fillCircle(x-1,y+23+walk,4);g.fillCircle(x+33,y+23-walk,4);
+      if(p.ropeHandY<10){g.lineStyle(4,c);g.lineBetween(x,y+22,x+12,y+p.ropeHandY);g.lineBetween(x+32,y+22,x+20,y+p.ropeHandY);g.fillCircle(x+12,y+p.ropeHandY,4);g.fillCircle(x+20,y+p.ropeHandY,4);}
+      else {g.fillCircle(x-1,y+23+walk,4);g.fillCircle(x+33,y+23-walk,4);}
       if(p.accessory==='sprout'){g.lineStyle(2,0x576f44);g.lineBetween(x+16,y,x+16,y-12);g.fillStyle(0x789361);g.fillEllipse(x+11,y-11,12,6);g.fillEllipse(x+22,y-15,12,7);}
       if(p.accessory==='cap'){g.fillStyle(0x46515e);g.fillRoundedRect(x-1,y-5,34,13,{tl:10,tr:10,bl:0,br:0});g.fillRoundedRect(x+16,y+4,24,4,2);}
       g.fillStyle(0x303943);g.fillEllipse(x+10+p.facing*1.5,y+15,3,5);g.fillEllipse(x+23+p.facing*1.5,y+15,3,5);

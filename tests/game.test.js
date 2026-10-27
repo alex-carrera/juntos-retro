@@ -16,13 +16,13 @@ test('Cada una de las siete estrellas solo puede recogerla su dueño',()=>{
 test('Los siete botones deben estar ocupados simultáneamente y se quedan abiertos',()=>{
   const r=room();startLevel(r,1);r.players.forEach(p=>{p.input.grip=true;p.gripHeld=true;});
   r.players.slice(0,6).forEach((p,i)=>p.x=r.plates[i].x+14);steps(r);assert.equal(r.unlocked,false);
-  r.players[6].x=r.plates[6].x+14;steps(r,40);assert.equal(r.unlocked,true);
+  r.players[6].x=r.plates[6].x+14;steps(r,62);assert.equal(r.unlocked,true);
   r.players.forEach(p=>p.x=30);steps(r);assert.equal(r.unlocked,true);
 });
-test('Cuatro de siete empujan el bloque y el equipo avanza al cuarto nivel',()=>{
-  const r=room();startLevel(r,2);r.ropeMode=null;assert.equal(r.requiredPushers,4);
-  r.players.forEach((p,i)=>{p.x=i<4?530:60;p.input.right=i<3;});steps(r,20);assert.equal(r.box.x,610);
-  r.players[3].input.right=true;steps(r,110);assert.equal(r.unlocked,true);
+test('Cinco de siete empujan el bloque y el equipo avanza al cuarto nivel',()=>{
+  const r=room();startLevel(r,2);r.ropeMode=null;assert.equal(r.requiredPushers,5);
+  r.players.forEach((p,i)=>{p.x=i<5?530:60;p.input.right=i<4;});steps(r,20);assert.equal(r.box.x,610);
+  r.players[4].input.right=true;steps(r,180);assert.equal(r.unlocked,true);
   r.players.forEach(p=>{p.x=1180;p.y=FLOOR-42;p.input.right=false;});steps(r,4);assert.equal(r.status,'cleared');
 });
 test('Un compañero desconectado pausa la física',()=>{
@@ -60,15 +60,15 @@ test('Caer al río devuelve al punto de control y conserva la chispa',()=>{
 test('El relevo ignora a quien no tiene turno y obliga a entrar con luz verde',()=>{
   const r=room();startLevel(r,4);r.players.forEach(p=>p.input.grip=true);const p=r.players[0],wrong=r.players[1],plate=r.plates[0];
   wrong.x=plate.x+14;steps(r,45);assert.equal(r.relayStep,0);wrong.x=40;
-  r.elapsed=0;p.x=plate.x+14;steps(r,45);assert.equal(r.relayStep,0);assert.equal(r.relayArmed,false);
-  p.x=100;stepRoom(r,1/30);p.x=plate.x+14;steps(r,21);assert.equal(r.relayStep,1);
+  r.elapsed=0;p.x=plate.x+14;steps(r,38);assert.equal(r.relayStep,0);assert.equal(r.relayArmed,false);
+  p.x=100;stepRoom(r,1/30);p.x=plate.x+14;steps(r,25);assert.equal(r.relayStep,1);
   assert.equal(r.plates[0].active,true);
 });
-test('La sincronía final exige el dueño de cada botón y dos segundos continuos',()=>{
+test('La sincronía final exige el dueño de cada botón y tres segundos continuos',()=>{
   const r=room();startLevel(r,5);r.ropeMode=null;r.players.forEach(p=>p.input.grip=true);r.stars.forEach(s=>s.collected=true);
   const place=()=>r.players.forEach((p,i)=>{p.x=r.plates[i].x+10;p.y=r.plates[i].y+8-p.h;});
   place();const left=r.players[0].x;r.players[0].x=r.players[1].x;r.players[0].y=r.players[1].y;r.players[1].x=left;r.players[1].y=r.plates[0].y+8-r.players[1].h;
   steps(r,70);assert.equal(r.unlocked,false);
   place();steps(r,30);assert.equal(r.unlocked,false);r.players[0].x=50;stepRoom(r,1/30);assert.equal(r.progress,0);
-  place();steps(r,65);assert.equal(r.unlocked,true);
+  place();steps(r,95);assert.equal(r.unlocked,true);
 });

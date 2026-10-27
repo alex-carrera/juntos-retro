@@ -20,18 +20,20 @@ Quien facilita también puede abrir el tablero desde la sala o el botón «Retro
 
 - Flechas o A/D: moverse.
 - Espacio, W o flecha arriba: saltar.
-- **E, mantenida:** agarrar a una persona cercana y frenar. Si está colgando de una cuerda, permite izarla. Agarrar y saltar ayuda a rescatarla. Suelta E para liberar un agarre manual; las cuerdas permanentes siguen uniendo al equipo.
+- **E, mantenida:** agarrar a una persona cercana y frenar. **E + Espacio, mantenidos:** recoger cuerda gradualmente para izar a un compañero colgado, apoyándote en suelo o en una cuerda que rodea una plataforma. En celular, mantén **Agarrar + Saltar**. Suelta E para liberar un agarre manual; las cuerdas permanentes siguen uniendo al equipo.
 - En celular aparecen botones de movimiento, salto y **Agarrar**. Usa orientación horizontal para ver mejor el escenario.
 - Coordinen por el audio de su llamada; no hay voz ni chat en el juego.
 
 ### Seis niveles
 
 1. **Unidos desde el inicio:** cuerdas por parejas, una chispa propia y la obligación de llegar juntos.
-2. **Contra la corriente:** la cinta desplaza al equipo mientras todos deben sostener los botones. Agarrar/frenar permite mantener la posición.
-3. **Arrastre en equipo:** una cadena de jugadores, un bloque pesado y ráfagas en contra.
+2. **Contra la corriente:** dos cintas opuestas desplazan al equipo mientras todos deben sostener sus botones de color durante 1,9 segundos. Agarrar/frenar permite mantener la posición.
+3. **Arrastre en equipo:** una cadena de jugadores, un bloque que retrocede sin suficiente empuje y ráfagas en contra. Hacen falta cinco de siete personas (o ambas en una pareja).
 4. **No sueltes la cuerda:** plataformas sobre un río con caídas reales. Quien queda arriba puede frenar e izar al compañero. Si todo el grupo conectado cae demasiado, vuelve al último punto de control que alcanzaron todos; las chispas recogidas se conservan.
-5. **Relevo en movimiento:** turnos con luz verde sobre una cinta transportadora. El dueño entra y sostiene su botón; si esperaba encima antes de su turno, debe salir y volver a entrar.
-6. **Todos o ninguno:** una cadena completa cruza el río y mantiene los botones de color a distintas alturas durante dos segundos, resistiendo el viento.
+5. **Relevo en movimiento:** turnos sobre cintas opuestas, con ventanas verdes de 1,25 segundos y 0,8 segundos de pulsación. El dueño entra y sostiene su botón; si esperaba encima antes de su turno, debe salir y volver a entrar.
+6. **Todos o ninguno:** una cadena completa cruza el río y mantiene los botones de color a distintas alturas durante tres segundos, resistiendo el viento.
+
+La física usa subpasos a 120 Hz, colisiones continuas por eje y tensión que conserva el movimiento tangencial. La cuerda distribuye el peso entre los personajes y rodea los bordes de las plataformas; agarrar en el aire no crea un anclaje. El rescate acorta la cuerda a 38 píxeles por segundo, sin teletransportar al compañero. Las plataformas más estrechas y las ráfagas exigen coordinar los saltos y apoyarse antes de izar.
 
 Las salas de juego viven en memoria: se pausan ante una desconexión y permiten volver al recargar la pestaña. Un reinicio del servidor borra las partidas en curso. El historial de retro se guarda por separado y sobrevive a esos reinicios.
 

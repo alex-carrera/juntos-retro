@@ -1,15 +1,17 @@
+import { buildRopeGeometry } from './rope-path.js';
+import { GRAVITY, PHYSICS_STEP, moveBody, refreshGrounding, solvePlayerContacts, approach } from './physics.js';
 export const WIDTH = 1280;
 export const HEIGHT = 680;
 export const FLOOR = 594;
 export const MAX_PLAYERS = 7;
 export const PALETTE = ['#ed7757', '#e8b544', '#7d9e78', '#719eb0', '#a98abb', '#df94a3', '#8caaa1'];
 export const LEVELS = [
-  { title: 'Unidos desde el inicio', subtitle: 'Cada persona recoge su chispa. La cuerda los une: avancen con su compañero, sin dejarlo atrás.', tag: '01 · UNIRSE', ropeMode:'pairs',ropeLength:185, platforms: [{x:340,y:514,w:145,h:18},{x:540,y:454,w:145,h:18},{x:740,y:514,w:145,h:18}] },
-  { title: 'Contra la corriente', subtitle: 'La cinta los arrastra. Ocupen todos los botones; mantén E o Agarrar para frenar.', tag: '02 · RESISTIR', belts:[{x:150,w:820,y:FLOOR,speed:-90}], platforms: [] },
-  { title: 'Arrastre en equipo', subtitle: 'Empujen juntos contra las ráfagas. La cadena tira de quienes se quedan; E permite agarrar y frenar.', tag: '03 · EMPUJAR', ropeMode:'chain',ropeLength:165,wind:{strength:-95,period:4}, platforms: [] },
-  { title: 'No sueltes la cuerda', subtitle: 'Crucen por parejas. Si alguien cae, frena con E y retrocede para rescatarlo antes de caer los dos.', tag: '04 · RESCATAR', ropeMode:'pairs',ropeLength:155, platforms: [{x:220,y:524,w:110,h:18},{x:365,y:464,w:100,h:18},{x:510,y:404,w:110,h:18},{x:665,y:464,w:100,h:18},{x:810,y:524,w:100,h:18},{x:955,y:524,w:90,h:18}], river:{x:320,w:695}, checkpoint:2 },
-  { title: 'Relevo en movimiento', subtitle: 'Activen por turnos con luz verde. La cinta empuja: mantén E para sostener el botón.', tag: '05 · COORDINAR',belts:[{x:160,w:820,y:FLOOR,speed:75}], platforms: [] },
-  { title: 'Todos o ninguno', subtitle: 'Una sola cadena, siete alturas. Cada quien en su botón; frenen las ráfagas con E y sostengan dos segundos.', tag: '06 · SINCRONIZAR',ropeMode:'chain',ropeLength:165,wind:{strength:-65,period:5}, platforms: [{x:170,y:534,w:100,h:18},{x:300,y:474,w:90,h:18},{x:430,y:414,w:90,h:18},{x:560,y:354,w:90,h:18},{x:690,y:414,w:90,h:18},{x:820,y:474,w:90,h:18},{x:950,y:534,w:100,h:18}], river:{x:260,w:750}, checkpoint:3 },
+  { title: 'Unidos desde el inicio', subtitle: 'Recoge tu chispa sobre plataformas más estrechas. La cuerda transmite el peso: salten junto a su pareja.', tag: '01 · UNIRSE', ropeMode:'pairs',ropeLength:170, platforms: [{x:340,y:514,w:125,h:18},{x:540,y:454,w:125,h:18},{x:740,y:514,w:125,h:18}] },
+  { title: 'Contra la corriente', subtitle: 'Dos cintas en sentidos opuestos. Cada quien sostiene su botón de color durante casi dos segundos; E permite frenar.', tag: '02 · RESISTIR', belts:[{x:150,w:430,y:FLOOR,speed:-135},{x:580,w:400,y:FLOOR,speed:115}],holdSeconds:1.9, platforms: [] },
+  { title: 'Arrastre en equipo', subtitle: 'Reúnan al equipo para empujar contra las ráfagas. Si faltan manos, el bloque retrocede. Manténganse cerca.', tag: '03 · EMPUJAR', ropeMode:'chain',ropeLength:165,wind:{strength:-135,period:2.8}, platforms: [] },
+  { title: 'No sueltes la cuerda', subtitle: 'Plataformas estrechas sobre el río. Si alguien cae, apóyate y mantén Agarrar + Salto para recoger cuerda poco a poco.', tag: '04 · RESCATAR', ropeMode:'pairs',ropeLength:150, platforms: [{x:220,y:524,w:95,h:18},{x:365,y:464,w:85,h:18},{x:510,y:404,w:95,h:18},{x:665,y:464,w:80,h:18},{x:810,y:524,w:80,h:18},{x:955,y:524,w:70,h:18}], river:{x:320,w:695}, checkpoint:2 },
+  { title: 'Relevo en movimiento', subtitle: 'La luz verde dura menos. Entra en tu turno y sostén el botón; las dos cintas empujan en sentidos opuestos.', tag: '05 · COORDINAR',belts:[{x:160,w:410,y:FLOOR,speed:110},{x:570,w:410,y:FLOOR,speed:-120}],relayPeriod:3.3,relayOpenAt:1,relayCloseAt:2.25,relayHold:.8, platforms: [] },
+  { title: 'Todos o ninguno', subtitle: 'Menos espacio, ráfagas más fuertes y una sola cadena. Cada quien en su botón, juntos durante tres segundos.', tag: '06 · SINCRONIZAR',ropeMode:'chain',ropeLength:158,wind:{strength:-105,period:3.2},holdSeconds:3, platforms: [{x:170,y:534,w:82,h:18},{x:300,y:474,w:80,h:18},{x:430,y:414,w:80,h:18},{x:560,y:354,w:76,h:18},{x:690,y:414,w:80,h:18},{x:820,y:474,w:80,h:18},{x:950,y:534,w:82,h:18}], river:{x:260,w:750}, checkpoint:3 },
 ];
 export const hasStars = level => [0,3,5].includes(level);
 export function onPlate(p,plate){return p.grounded && Math.abs(p.y+p.h-plate.y-8)<4 && p.x+p.w>plate.x+8 && p.x<plate.x+plate.w-8;}
@@ -26,14 +28,14 @@ export function startLevel(room, index) {
   room.unlocked = false;
   room.progress = 0;
   room.exitCount = 0;
-  room.ropeMode=LEVELS[index].ropeMode;room.ropeLength=LEVELS[index].ropeLength;room.links=[];
+  room.ropeMode=LEVELS[index].ropeMode;room.ropeLength=LEVELS[index].ropeLength;room.links=[];room.ropeGeometry=null;
   room.relayStep=0;room.relayHold=0;room.relayArmed=true;room.signalOpen=false;room.signalRemaining=0;
   room.relayOrder=[];
   for(let a=0,b=room.players.length-1;a<=b;a++,b--){room.relayOrder.push(room.players[a].id);if(a!==b)room.relayOrder.push(room.players[b].id);}
   room.box = {x:610,y:FLOOR-68,w:68,h:68};
-  room.pushers = 0;
-  room.requiredPushers = Math.max(1, Math.ceil(room.players.length/2));
-  room.plates = room.players.map((_,i) => ({x:190+i*91, y:FLOOR-8,w:60,h:8,active:false}));
+  room.pushers = 0;room.pushHold=0;
+  room.requiredPushers = Math.max(1, Math.ceil(room.players.length*.7));
+  room.plates = room.players.map((_,i) => ({x:190+i*101, y:FLOOR-8,w:44,h:8,active:false}));
   room.stars = room.players.map((p,i) => ({owner:p.id, color:p.color, x:260+i*94, y:i===1||i===2?478:i===3||i===4?418:i===5||i===6?478:554,collected:false}));
   // Match each star to a reachable platform, including smaller rooms.
   room.stars.forEach((s) => {
@@ -49,71 +51,68 @@ export function startLevel(room, index) {
     room.plates=room.players.map((p,i)=>{const plat=LEVELS[index].platforms[i];return {x:plat.x+15,y:plat.y-8,w:plat.w-30,h:8,active:false,owner:p.id,color:p.color};});
     room.stars=room.plates.map(plate=>({owner:plate.owner,color:plate.color,x:plate.x+plate.w/2,y:plate.y-23,collected:false}));
   }
-  if(index===4)room.plates.forEach((plate,i)=>{plate.owner=room.players[i].id;plate.color=room.players[i].color;});
-  room.players.forEach((p,i)=>{const x=index>=3?45+i*26:68+i*43;Object.assign(p,{x,y:FLOOR-42,vx:0,vy:0,dragVX:0,grabbed:null,spark:false,grounded:true,input:{left:false,right:false,jump:false,grip:false},jumpHeld:false,checkpoint:{x,y:FLOOR-42},checkpointStage:0,respawnUntil:0,route:0});});
+  if(index===1||index===4)room.plates.forEach((plate,i)=>{plate.owner=room.players[i].id;plate.color=room.players[i].color;});
+  room.players.forEach((p,i)=>{const x=index>=3?45+i*26:68+i*43;Object.assign(p,{x,y:FLOOR-42,vx:0,vy:0,dragVX:0,grabbed:null,spark:false,grounded:true,input:{left:false,right:false,jump:false,grip:false},jumpHeld:false,checkpoint:{x,y:FLOOR-42},checkpointStage:0,respawnUntil:0,route:0,rescueUntil:0,navCheckpoint:-1,navUnlocked:false,gripHeld:false,ropeHandY:20});});
 }
 
 function solids(room) {
   const platforms = [...LEVELS[room.level].platforms];
   if (!room.unlocked) platforms.push({x:1060,y:FLOOR-200,w:20,h:200,gate:true});
   if(room.level===2) platforms.push(room.box);
+  const river=LEVELS[room.level].river;
+  if(river){platforms.push({x:0,y:FLOOR,w:river.x,h:2000},{x:river.x+river.w,y:FLOOR,w:WIDTH-river.x-river.w,h:2000});}
+  else platforms.push({x:0,y:FLOOR,w:WIDTH,h:2000});
   return platforms;
 }
 
 export function stepRoom(room, dt) {
+  if(!Number.isFinite(dt)||dt<=0)return;
+  dt=Math.min(dt,1/20);
+  const count=Math.ceil(dt/PHYSICS_STEP);
+  for(let i=0;i<count;i++)stepRoomSlice(room,dt/count);
+}
+
+function stepRoomSlice(room, dt) {
   if(room.status!=='playing' || room.players.some(p=>!p.connected)) return;
   dt = Math.min(dt, 1/20);
   room.elapsed += dt;
   const level=LEVELS[room.level];
-  const overRiver=p=>level.river&&p.x+p.w>level.river.x&&p.x<level.river.x+level.river.w;
-  if(room.level===4){const phase=room.elapsed%3.6;room.signalOpen=phase>=1&&phase<2.6;room.signalRemaining=room.signalOpen?2.6-phase:0;}
+  if(room.level===4){const phase=room.elapsed%level.relayPeriod;room.signalOpen=phase>=level.relayOpenAt&&phase<level.relayCloseAt;room.signalRemaining=room.signalOpen?level.relayCloseAt-phase:0;}
   if(room.level===2 && !room.unlocked) {
     const box=room.box;
-    room.pushers = room.players.filter(p=>p.input.right && !p.input.left && p.x+p.w<=box.x+10 && p.x+p.w>box.x-185 && Math.abs(p.y+p.h-FLOOR)<10).length;
-    if(room.pushers>=room.requiredPushers) box.x = Math.min(925,box.x+100*dt);
+    room.pushers = room.players.filter(p=>p.input.right && !p.input.left && p.x+p.w<=box.x+10 && p.x+p.w>box.x-150 && Math.abs(p.y+p.h-FLOOR)<10).length;
+    room.pushHold=room.pushers>=room.requiredPushers?room.pushHold+dt:0;
+    if(room.pushHold>=.35)box.x=Math.min(925,box.x+72*dt);
+    else if(room.pushers<room.requiredPushers)box.x=Math.max(610,box.x-25*dt);
     room.progress = (box.x-610)/315;
     if(box.x>=925) { room.unlocked=true; room.progress=1; }
   }
   const obstacles = solids(room);
-  for(const p of room.players) {
-    p.wasGrounded=p.grounded;
-    const move = Number(p.input.right)-Number(p.input.left);
-    p.dragVX=(p.dragVX||0)*(p.input.grip&&p.grounded?.55:.9);
+  refreshGrounding(room.players,obstacles);
+  const move=(p,dx,dy)=>moveBody(p,dx,dy,obstacles,WIDTH);
+  for(const p of room.players){
+    p.previousY=p.y;p.wasGrounded=p.grounded;
+    const direction=Number(Boolean(p.input.right))-Number(Boolean(p.input.left));
+    const grip=p.input.grip&&p.grounded;
     const belt=level.belts?.find(b=>p.grounded&&Math.abs(p.y+p.h-b.y)<5&&p.x+p.w>b.x&&p.x<b.x+b.w);
-    const wind=level.wind&&p.x>170&&p.x<1080?level.wind.strength*(.55+.45*Math.sin(room.elapsed*Math.PI*2/level.wind.period)):0;
-    const drag=p.input.grip&&p.grounded?0:(belt?.speed||0)+wind;
-    p.vx = move*(p.input.grip?160:225)+p.dragVX+drag;
-    if(move) p.facing=move;
-    if(p.input.jump && !p.jumpHeld && p.grounded) {p.vy=-510; p.grounded=false;}
-    p.jumpHeld=p.input.jump;
-    p.vy=Math.min(720,p.vy+1350*dt);
-    p.x+=p.vx*dt;
-    p.x=Math.max(20,Math.min(WIDTH-p.w-20,p.x));
-    for(const o of obstacles) if(rectsOverlap(p,o)) {
-      if(p.vx>0) p.x=o.x-p.w;
-      else if(p.vx<0) p.x=o.x+o.w;
-    }
-    const before=p.y+p.h;
-    p.y+=p.vy*dt;
-    p.grounded=false;
-    if(p.y+p.h>=FLOOR&&before<=FLOOR+2&&!overRiver(p)) {p.y=FLOOR-p.h;p.vy=0;p.grounded=true;}
-    for(const o of obstacles) if(rectsOverlap(p,o)) {
-      if(p.vy>=0 && before<=o.y+3) {p.y=o.y-p.h;p.vy=0;p.grounded=true;}
-      else if(p.vy<0 && before-p.h>=o.y+o.h-3) {p.y=o.y+o.h;p.vy=0;}
-    }
-    // Players can stand on teammates without trapping one another horizontally.
-    for(const other of room.players) if(other.id!==p.id && p.vy>=0 && before<=other.y+4 && p.y+p.h>=other.y && p.x+p.w>other.x+4 && p.x<other.x+other.w-4) {
-      p.y=other.y-p.h;p.vy=0;p.grounded=true;
-    }
+    const wind=level.wind&&p.x>170&&p.x<1080?level.wind.strength*(.55+.45*Math.sin(room.elapsed*Math.PI*2/level.wind.period))*3.2:0;
+    p.vx+=wind*dt;
+    const target=direction*(grip?135:225)+(grip?0:belt?.speed||0);
+    if(p.grounded)p.vx=approach(p.vx,target,(direction?1850:grip?2600:480)*dt);
+    else if(direction)p.vx=approach(p.vx,target,1100*dt);
+    else p.vx*=Math.exp(-.12*dt);
+    if(direction)p.facing=direction;
+    const reeling=p.input.grip&&room.links.some(l=>{if(l.a!==p.id&&l.b!==p.id)return false;const q=room.players.find(q=>q.id===(l.a===p.id?l.b:l.a));return q&&!q.grounded&&(q.y>p.y+18||l.rescue);});
+    if(p.input.jump&&!reeling&&!p.jumpHeld&&p.grounded){p.vy=-510;p.grounded=false;}
+    p.jumpHeld=Boolean(p.input.jump);
+    p.vy+=GRAVITY*dt;
+    move(p,p.vx*dt,p.vy*dt);
   }
-  solveRopes(room,dt,(p,dx,dy)=>{
-    const previousBottom=p.y+p.h;
-    p.x=Math.max(20,Math.min(WIDTH-p.w-20,p.x+dx));
-    for(const o of obstacles)if(rectsOverlap(p,o)){if(dx>0)p.x=o.x-p.w;else if(dx<0)p.x=o.x+o.w;}
-    p.y+=dy;if(Math.abs(dy)>.1)p.grounded=false;
-    if(dy>=0&&previousBottom<=FLOOR+2&&p.y+p.h>=FLOOR&&!overRiver(p)){p.y=FLOOR-p.h;p.vy=0;p.grounded=true;}
-    for(const o of obstacles)if(rectsOverlap(p,o)){if(dy>=0&&previousBottom<=o.y+3){p.y=o.y-p.h;p.vy=0;p.grounded=true;}else if(dy<0&&previousBottom-p.h>=o.y+o.h-3){p.y=o.y+o.h;p.vy=0;}}
-  });
+  const contacts=()=>{solvePlayerContacts(room.players,move);refreshGrounding(room.players,obstacles);};
+  contacts();
+  room.ropeGeometry||=buildRopeGeometry(obstacles.filter(o=>!o.gate&&o!==room.box));
+  solveRopes(room,dt,move,contacts,room.ropeGeometry);
+  contacts();
   if(level.river)for(const p of room.players){
     const cp=level.platforms[level.checkpoint];
     if(p.grounded&&Math.abs(p.y+p.h-cp.y)<3&&p.x+p.w>cp.x+8&&p.x<cp.x+cp.w-8){p.checkpoint={x:cp.x+cp.w/2-16,y:cp.y-p.h};p.checkpointStage=level.checkpoint+1;}
@@ -137,7 +136,7 @@ export function stepRoom(room, dt) {
       if(occupant) assigned.add(occupant.id);
     }
     const starsReady=room.level!==5||room.stars.every(s=>s.collected);
-    room.progress=assigned.size===room.players.length&&starsReady ? Math.min(1,room.progress+dt/(room.level===5?2:1.1)) : 0;
+    room.progress=assigned.size===room.players.length&&starsReady ? Math.min(1,room.progress+dt/level.holdSeconds) : 0;
     if(room.progress>=1) room.unlocked=true;
   }
   if(room.level===4&&!room.unlocked){
@@ -147,7 +146,7 @@ export function stepRoom(room, dt) {
     else if(!room.signalOpen){room.relayArmed=false;room.relayHold=0;}
     else if(room.relayArmed){
       room.relayHold+=dt;
-      if(room.relayHold>=.65){
+      if(room.relayHold>=level.relayHold){
         plate.active=true;room.relayStep++;room.relayHold=0;
         if(room.relayStep===room.players.length)room.unlocked=true;
         else {const next=room.players.find(p=>p.id===room.relayOrder[room.relayStep]);room.relayArmed=!onPlate(next,room.plates.find(plate=>plate.owner===next.id));}
